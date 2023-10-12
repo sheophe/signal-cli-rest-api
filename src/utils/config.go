@@ -2,9 +2,12 @@ package utils
 
 import (
 	"errors"
+	"os"
+
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 )
+
+const NumberlessTcpPort int64 = 6000
 
 type JsonRpc2ClientConfigEntry struct {
 	TcpPort      int64  `yaml:"tcp_port"`
@@ -24,7 +27,7 @@ func NewJsonRpc2ClientConfig() *JsonRpc2ClientConfig {
 }
 
 func (c *JsonRpc2ClientConfig) Load(path string) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -75,5 +78,5 @@ func (c *JsonRpc2ClientConfig) Persist(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, out, 0644)
+	return os.WriteFile(path, out, 0644)
 }

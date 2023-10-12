@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/bbernhard/signal-cli-rest-api/utils"
 	uuid "github.com/gofrs/uuid"
+	"github.com/sheophe/signal-cli-rest-api/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/sjson"
 )
@@ -36,13 +36,13 @@ type JsonRpc2Client struct {
 	receivedMessages         chan JsonRpc2ReceivedMessage
 	lastTimeErrorMessageSent time.Time
 	signalCliApiConfig       *utils.SignalCliApiConfig
-	number					 string
+	number                   string
 }
 
 func NewJsonRpc2Client(signalCliApiConfig *utils.SignalCliApiConfig, number string) *JsonRpc2Client {
 	return &JsonRpc2Client{
 		signalCliApiConfig: signalCliApiConfig,
-		number: number,
+		number:             number,
 	}
 }
 

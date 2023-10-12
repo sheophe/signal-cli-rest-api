@@ -14,8 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/bbernhard/signal-cli-rest-api/client"
-	utils "github.com/bbernhard/signal-cli-rest-api/utils"
+	"github.com/sheophe/signal-cli-rest-api/client"
+	utils "github.com/sheophe/signal-cli-rest-api/utils"
 )
 
 const (
@@ -50,7 +50,7 @@ type CreateGroupRequest struct {
 
 type UpdateGroupRequest struct {
 	Base64Avatar *string `json:"base64_avatar"`
-	Description *string `json:"description"`
+	Description  *string `json:"description"`
 }
 
 type ChangeGroupMembersRequest struct {
@@ -162,12 +162,14 @@ type AddDeviceRequest struct {
 }
 
 type Api struct {
-	signalClient *client.SignalClient
+	signalClient  *client.SignalClient
+	signalCliMode client.SignalCliMode
 }
 
-func NewApi(signalClient *client.SignalClient) *Api {
+func NewApi(signalClient *client.SignalClient, signalCliMode client.SignalCliMode) *Api {
 	return &Api{
-		signalClient: signalClient,
+		signalClient:  signalClient,
+		signalCliMode: signalCliMode,
 	}
 }
 
@@ -844,21 +846,51 @@ func (a *Api) DeleteGroup(c *gin.Context) {
 	}
 }
 
-// @Summary Link device and generate QR code.
+// @Summary Generate a URL for linking the device
 // @Tags Devices
-// @Description Link device and generate QR code
+// @Description Generate a URL for linking the device
 // @Produce  json
-// @Success 200 {string} string	"Image"
-// @Param device_name query string true "Device Name"
-// @Param qrcode_version query int false "QRCode Version (defaults to 10)"
+// @Success 200 {object} client.SignalLinkUrl
+// @Param device_name query string false "Device Name"
 // @Failure 400 {object} Error
-// @Router /v1/qrcodelink [get]
-func (a *Api) GetQrCodeLink(c *gin.Context) {
+// @Router /v1/link [get]
+func (a *Api) GetDeviceLink(c *gin.Context) {
 	deviceName := c.Query("device_name")
+
+	if deviceName == "" && a.signalCliMode != client.JsonRpc {
+		c.JSON(400, Error{Msg: "Please provide a name for the device"})
+		return
+	}
+
+	if deviceName != "" && a.signalCliMode == client.JsonRpc {
+		c.JSON(400, Error{Msg: "The device_name parameter is not supported in JSON-RPC mode"})
+		return
+	}
+
+	signalLinkUri, err := a.signalClient.GetDeviceLink(deviceName)
+	if err != nil {
+		c.JSON(400, Error{Msg: err.Error()})
+		return
+	}
+
+	c.JSON(200, signalLinkUri)
+}
+
+// @Summary Generate QR code from provided device link URI.
+// @Tags Devices
+// @Description Generate QR code from provided device link URI.
+// @Produce  json
+// @Success 200 {string} string "Image"
+// @Param device_link_uri query string true "Device Link URI"
+// @Param qrcode_version query string false "QR coede version. Defaults to 10"
+// @Failure 400 {object} Error
+// @Router /v1/link/qrcode [get]
+func (a *Api) GetLinkQrCode(c *gin.Context) {
+	deviceLinkUri := c.Query("device_link_uri")
 	qrCodeVersion := c.Query("qrcode_version")
 
-	if deviceName == "" {
-		c.JSON(400, Error{Msg: "Please provide a name for the device"})
+	if deviceLinkUri == "" {
+		c.JSON(400, Error{Msg: "Please provide a link URI"})
 		return
 	}
 
@@ -872,13 +904,40 @@ func (a *Api) GetQrCodeLink(c *gin.Context) {
 		}
 	}
 
-	png, err := a.signalClient.GetQrCodeLink(deviceName, qrCodeVersionInt)
+	png, err := a.signalClient.GetLinkQrCode(deviceLinkUri, qrCodeVersionInt)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
 		return
 	}
 
 	c.Data(200, "image/png", png)
+}
+
+// @Summary Wait until device is linked.
+// @Tags Devices
+// @Description Wait until device is linked and return the number.
+// @Produce  json
+// @Success 200 {object} client.SignalLinkNumber
+// @Param device_link_uri query string true "Device Link URI"
+// @Param device_name query string true "Device Name"
+// @Failure 400 {object} Error
+// @Router /v1/link/await [get]
+func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
+	deviceName := c.Query("device_name")
+	deviceLinkUri := c.Query("device_link_uri")
+
+	if deviceName == "" {
+		c.JSON(400, Error{Msg: "Please provide a name for the device"})
+		return
+	}
+
+	number, err := a.signalClient.GetDeviceLinkAwait(deviceLinkUri, deviceName)
+	if err != nil {
+		c.JSON(400, Error{Msg: err.Error()})
+		return
+	}
+
+	c.JSON(200, number)
 }
 
 // @Summary List all attachments.

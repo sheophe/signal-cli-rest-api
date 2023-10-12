@@ -27,7 +27,7 @@ See also the [documentation of the Home Assistant integration](https://www.home-
 version: "3"
 services:
   signal-cli-rest-api:
-    image: bbernhard/signal-cli-rest-api:latest
+    image: sheophe/signal-cli-rest-api:latest
     environment:
       - MODE=json-rpc #supported modes: json-rpc, native, normal. json-prc is recommended for speed
     ports:
@@ -228,7 +228,7 @@ action:
 
 ## API details
 
-Details regarding API (in example for receiving messages through REST) can be found [here](https://bbernhard.github.io/signal-cli-rest-api/)
+Details regarding API (in example for receiving messages through REST) can be found [here](https://sheophe.github.io/signal-cli-rest-api/)
 
 ## Troubleshooting
 

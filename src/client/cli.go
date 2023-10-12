@@ -1,24 +1,24 @@
 package client
 
 import (
-	"strings"
-	"errors"
-	"os/exec"
-	"bytes"
-	"time"
 	"bufio"
+	"bytes"
+	"errors"
+	utils "github.com/sheophe/signal-cli-rest-api/utils"
 	log "github.com/sirupsen/logrus"
-	utils "github.com/bbernhard/signal-cli-rest-api/utils"
+	"os/exec"
+	"strings"
+	"time"
 )
 
 type CliClient struct {
-	signalCliMode            SignalCliMode
-	signalCliApiConfig       *utils.SignalCliApiConfig
+	signalCliMode      SignalCliMode
+	signalCliApiConfig *utils.SignalCliApiConfig
 }
 
 func NewCliClient(signalCliMode SignalCliMode, signalCliApiConfig *utils.SignalCliApiConfig) *CliClient {
-	return &CliClient {
-		signalCliMode: signalCliMode,
+	return &CliClient{
+		signalCliMode:      signalCliMode,
 		signalCliApiConfig: signalCliApiConfig,
 	}
 }
@@ -45,7 +45,7 @@ func (s *CliClient) Execute(wait bool, args []string, stdin string) (string, err
 	//check if args contain number
 	trustModeStr := ""
 	for i, arg := range args {
-		if (arg == "-a" || arg == "--account") && (((i+1) < len(args)) && (utils.IsPhoneNumber(args[i+1]))) {
+		if (arg == "-a" || arg == "--account") && (((i + 1) < len(args)) && (utils.IsPhoneNumber(args[i+1]))) {
 			number := args[i+1]
 			trustMode, err := s.signalCliApiConfig.GetTrustModeForNumber(number)
 			if err == nil {
@@ -128,4 +128,3 @@ func (s *CliClient) Execute(wait bool, args []string, stdin string) (string, err
 		return string(line), nil
 	}
 }
-

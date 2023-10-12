@@ -17,7 +17,7 @@ import (
 	uuid "github.com/gofrs/uuid"
 	qrcode "github.com/skip2/go-qrcode"
 
-	utils "github.com/bbernhard/signal-cli-rest-api/utils"
+	utils "github.com/sheophe/signal-cli-rest-api/utils"
 )
 
 const groupPrefix = "group."
@@ -25,6 +25,8 @@ const groupPrefix = "group."
 const signalCliV2GroupError = "Cannot create a V2 group as self does not have a versioned profile"
 
 const endpointNotSupportedInJsonRpcMode = "This endpoint is not supported in JSON-RCP mode."
+
+const endpointOnlySupportedInJsonRpcMode = "This endpoint is only supported in JSON-RCP mode."
 
 type GroupPermission int
 
@@ -157,6 +159,14 @@ type SignalCliIdentityEntry struct {
 	ScannableSafetyNumber string `json:"scannableSafetyNumber"`
 	TrustLevel            string `json:"trustLevel"`
 	AddedTimestamp        int64  `json:"addedTimestamp"`
+}
+
+type SignalLinkUrl struct {
+	DeviceLinkUri string `json:"deviceLinkUri"`
+}
+
+type SignalLinkNumber struct {
+	Number string `json:"number"`
 }
 
 type SendResponse struct {
@@ -310,6 +320,15 @@ func (s *SignalClient) Init() error {
 	if s.signalCliMode == JsonRpc {
 		s.jsonRpc2ClientConfig = utils.NewJsonRpc2ClientConfig()
 		err := s.jsonRpc2ClientConfig.Load(s.jsonRpc2ClientConfigPath)
+		if err != nil {
+			return err
+		}
+
+		s.jsonRpc2Clients = make(map[string]*JsonRpc2Client)
+
+		// client with empty number is used only for device linking
+		s.jsonRpc2Clients[""] = NewJsonRpc2Client(s.signalCliApiConfig, "")
+		err = s.jsonRpc2Clients[""].Dial("127.0.0.1:" + strconv.FormatInt(utils.NumberlessTcpPort, 10))
 		if err != nil {
 			return err
 		}
@@ -520,7 +539,7 @@ func (s *SignalClient) About() About {
 		BuildNr:              2,
 		Mode:                 getSignalCliModeString(s.signalCliMode),
 		Version:              utils.GetEnv("BUILD_VERSION", "unset"),
-		Capabilities:         map[string][]string{"v2/send": []string{"quotes", "mentions"}},
+		Capabilities:         map[string][]string{"v2/send": {"quotes", "mentions"}},
 	}
 	return about
 }
@@ -704,12 +723,12 @@ func (s *SignalClient) CreateGroup(number string, name string, members []string,
 	var internalGroupId string
 	if s.signalCliMode == JsonRpc {
 		type Request struct {
-			Name        string   `json:"name"`
-			Members     []string `json:"members"`
-			Link        string   `json:"link,omitempty"`
-			Description string   `json:"description,omitempty"`
-			EditGroupPermissions string `json:"setPermissionEditDetails,omitempty"`
-			AddMembersPermissions string `json:"setPermissionAddMember,omitempty"`
+			Name                  string   `json:"name"`
+			Members               []string `json:"members"`
+			Link                  string   `json:"link,omitempty"`
+			Description           string   `json:"description,omitempty"`
+			EditGroupPermissions  string   `json:"setPermissionEditDetails,omitempty"`
+			AddMembersPermissions string   `json:"setPermissionAddMember,omitempty"`
 		}
 		request := Request{Name: name, Members: members}
 
@@ -995,7 +1014,7 @@ func (s *SignalClient) GetGroup(number string, groupId string) (*GroupEntry, err
 func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 	if s.signalCliMode == JsonRpc {
 		type Request struct {
-			GroupId      string   `json:"groupId"`
+			GroupId string `json:"groupId"`
 		}
 		request := Request{GroupId: groupId}
 
@@ -1014,18 +1033,74 @@ func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 	}
 }
 
-func (s *SignalClient) GetQrCodeLink(deviceName string, qrCodeVersion int) ([]byte, error) {
+func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	if s.signalCliMode == JsonRpc {
-		return []byte{}, errors.New(endpointNotSupportedInJsonRpcMode)
-	}
-	command := []string{"--config", s.signalCliConfig, "link", "-n", deviceName}
+		jsonRpc2Client, err := s.getJsonRpc2Client("")
+		if err != nil {
+			return SignalLinkUrl{}, err
+		}
 
+		deviceLinkUri, err := jsonRpc2Client.getRaw("startLink", nil)
+		if err != nil {
+			return SignalLinkUrl{}, err
+		}
+
+		signalLinkUri := SignalLinkUrl{}
+		err = json.Unmarshal([]byte(deviceLinkUri), &signalLinkUri)
+		if err != nil {
+			return SignalLinkUrl{}, err
+		}
+
+		return signalLinkUri, nil
+	}
+
+	command := []string{"--config", s.signalCliConfig, "link", "-n", deviceName}
 	tsdeviceLink, err := s.cliClient.Execute(false, command, "")
 	if err != nil {
-		return []byte{}, errors.New("Couldn't create QR code: " + err.Error())
+		return SignalLinkUrl{}, errors.New("Couldn't create QR code: " + err.Error())
 	}
 
-	q, err := qrcode.NewWithForcedVersion(string(tsdeviceLink), qrCodeVersion, qrcode.Highest)
+	signalLinkUri := SignalLinkUrl{}
+	err = json.Unmarshal([]byte(tsdeviceLink), &signalLinkUri)
+	if err != nil {
+		return SignalLinkUrl{}, err
+	}
+
+	return signalLinkUri, nil
+}
+
+func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (SignalLinkNumber, error) {
+	if s.signalCliMode != JsonRpc {
+		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
+	}
+
+	jsonRpc2Client, err := s.getJsonRpc2Client("")
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	type Request struct {
+		DeviceLinkUri string `json:"deviceLinkUri"`
+		DeviceName    string `json:"deviceName"`
+	}
+	request := Request{DeviceLinkUri: deviceLinkUri, DeviceName: deviceName}
+
+	rawData, err := jsonRpc2Client.getRaw("finishLink", request)
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	response := SignalLinkNumber{}
+	err = json.Unmarshal([]byte(rawData), &response)
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	return response, nil
+}
+
+func (s *SignalClient) GetLinkQrCode(linkUri string, qrCodeVersion int) ([]byte, error) {
+	q, err := qrcode.NewWithForcedVersion(string(linkUri), qrCodeVersion, qrcode.Highest)
 	if err != nil {
 		return []byte{}, errors.New("Couldn't create QR code: " + err.Error())
 	}
@@ -1339,8 +1414,8 @@ func (s *SignalClient) UpdateGroup(number string, groupId string, base64Avatar *
 
 	if s.signalCliMode == JsonRpc {
 		type Request struct {
-			GroupId     string `json:"groupId"`
-			Avatar      string `json:"avatar,omitempty"`
+			GroupId     string  `json:"groupId"`
+			Avatar      string  `json:"avatar,omitempty"`
 			Description *string `json:"description,omitempty"`
 		}
 		request := Request{GroupId: groupId}
@@ -1350,7 +1425,6 @@ func (s *SignalClient) UpdateGroup(number string, groupId string, base64Avatar *
 		}
 
 		request.Description = groupDescription
-
 
 		jsonRpc2Client, err := s.getJsonRpc2Client(number)
 		if err != nil {
@@ -1582,7 +1656,7 @@ func (s *SignalClient) SearchForNumbers(number string, numbers []string) ([]Sear
 	return searchResultEntries, err
 }
 
-func (s* SignalClient) SendContacts(number string) error {
+func (s *SignalClient) SendContacts(number string) error {
 	var err error
 	if s.signalCliMode == JsonRpc {
 		jsonRpc2Client, err := s.getJsonRpc2Client(number)

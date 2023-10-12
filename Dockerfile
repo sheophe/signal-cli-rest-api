@@ -23,23 +23,23 @@ COPY ext/libraries/libsignal-client/signal-cli-native.patch /tmp/signal-cli-nati
 
 # use architecture specific libsignal_jni.so
 RUN arch="$(uname -m)"; \
-        case "$arch" in \
-            aarch64) cp /tmp/libsignal-client-libraries/arm64/libsignal_jni.so /tmp/libsignal_jni.so ;; \
-			armv7l) cp /tmp/libsignal-client-libraries/armv7/libsignal_jni.so /tmp/libsignal_jni.so ;; \
-            x86_64) cp /tmp/libsignal-client-libraries/x86-64/libsignal_jni.so /tmp/libsignal_jni.so ;; \
-			*) echo "Unknown architecture" && exit 1 ;; \
-        esac;
+	case "$arch" in \
+	aarch64) cp /tmp/libsignal-client-libraries/arm64/libsignal_jni.so /tmp/libsignal_jni.so ;; \
+	armv7l) cp /tmp/libsignal-client-libraries/armv7/libsignal_jni.so /tmp/libsignal_jni.so ;; \
+	x86_64) cp /tmp/libsignal-client-libraries/x86-64/libsignal_jni.so /tmp/libsignal_jni.so ;; \
+	*) echo "Unknown architecture" && exit 1 ;; \
+	esac;
 
 RUN dpkg-reconfigure debconf --frontend=noninteractive \
 	&& apt-get -qq update \
 	&& apt-get -qqy install --no-install-recommends \
-		wget openjdk-17-jre software-properties-common git locales zip unzip \
-		file build-essential libz-dev zlib1g-dev < /dev/null > /dev/null \
+	wget openjdk-17-jre software-properties-common git locales zip unzip \
+	file build-essential libz-dev zlib1g-dev < /dev/null > /dev/null \
 	&& rm -rf /var/lib/apt/lists/* 
 
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
-    dpkg-reconfigure --frontend=noninteractive locales && \
-    update-locale LANG=en_US.UTF-8
+	dpkg-reconfigure --frontend=noninteractive locales && \
+	update-locale LANG=en_US.UTF-8
 
 ENV JAVA_OPTS="-Djdk.lang.Process.launchMechanism=vfork"
 
@@ -60,55 +60,55 @@ RUN cd /tmp/ \
 # build native image with graalvm
 
 RUN arch="$(uname -m)"; \
-        case "$arch" in \
-            aarch64) wget -nv https://download.oracle.com/graalvm/${GRAALVM_JAVA_VERSION}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-aarch64_bin.tar.gz -O /tmp/gvm.tar.gz ;; \
-            armv7l) echo "GRAALVM doesn't support 32bit" ;; \
-            x86_64) wget -nv https://download.oracle.com/graalvm/${GRAALVM_JAVA_VERSION}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz -O /tmp/gvm.tar.gz ;; \ 
-			*) echo "Invalid architecture" ;; \
-        esac;
+	case "$arch" in \
+	aarch64) wget -nv https://download.oracle.com/graalvm/${GRAALVM_JAVA_VERSION}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-aarch64_bin.tar.gz -O /tmp/gvm.tar.gz ;; \
+	armv7l) echo "GRAALVM doesn't support 32bit" ;; \
+	x86_64) wget -nv https://download.oracle.com/graalvm/${GRAALVM_JAVA_VERSION}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz -O /tmp/gvm.tar.gz ;; \ 
+	*) echo "Invalid architecture" ;; \
+	esac;
 
 RUN if [ "$(uname -m)" = "x86_64" ]; then \
-		cd /tmp \
-		&& git clone https://github.com/AsamK/signal-cli.git signal-cli-${SIGNAL_CLI_VERSION}-source \
-		&& cd signal-cli-${SIGNAL_CLI_VERSION}-source \
-		&& git checkout -q v${SIGNAL_CLI_VERSION} \
-		&& cd /tmp && mkdir -p /tmp/graalvm && tar xf gvm.tar.gz -C /tmp/graalvm --strip-components=1 \
-		&& export JAVA_HOME=/tmp/graalvm \
-		&& export PATH=/tmp/graalvm/bin:$PATH \
-		&& cd /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source \
-		&& sed -i 's/Signal-Android\/5.22.3/Signal-Android\/5.51.7/g' src/main/java/org/asamk/signal/BaseConfig.java \
-		&& ./gradlew build \
-		&& ./gradlew installDist \
-		&& ls build/install/signal-cli/lib/libsignal-client-${LIBSIGNAL_CLIENT_VERSION}.jar || (echo "\n\nsignal-client jar file with version ${LIBSIGNAL_CLIENT_VERSION} not found. Maybe the version needs to be bumped in the signal-cli-rest-api Dockerfile?\n\n" && echo "Available version: \n" && ls build/install/signal-cli/lib/libsignal-client-* && echo "\n\n" && exit 1) \
-		&& cd /tmp \
-		&& cp signal-cli-${SIGNAL_CLI_VERSION}-source/build/install/signal-cli/lib/libsignal-client-${LIBSIGNAL_CLIENT_VERSION}.jar libsignal-client.jar \
-		&& zip -qu libsignal-client.jar libsignal_jni.so \
-		&& cd /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source \
-		&& git apply /tmp/signal-cli-native.patch \
-		&& ./gradlew -q nativeCompile; \
+	cd /tmp \
+	&& git clone https://github.com/AsamK/signal-cli.git signal-cli-${SIGNAL_CLI_VERSION}-source \
+	&& cd signal-cli-${SIGNAL_CLI_VERSION}-source \
+	&& git checkout -q v${SIGNAL_CLI_VERSION} \
+	&& cd /tmp && mkdir -p /tmp/graalvm && tar xf gvm.tar.gz -C /tmp/graalvm --strip-components=1 \
+	&& export JAVA_HOME=/tmp/graalvm \
+	&& export PATH=/tmp/graalvm/bin:$PATH \
+	&& cd /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source \
+	&& sed -i 's/Signal-Android\/5.22.3/Signal-Android\/5.51.7/g' src/main/java/org/asamk/signal/BaseConfig.java \
+	&& ./gradlew build \
+	&& ./gradlew installDist \
+	&& ls build/install/signal-cli/lib/libsignal-client-${LIBSIGNAL_CLIENT_VERSION}.jar || (echo "\n\nsignal-client jar file with version ${LIBSIGNAL_CLIENT_VERSION} not found. Maybe the version needs to be bumped in the signal-cli-rest-api Dockerfile?\n\n" && echo "Available version: \n" && ls build/install/signal-cli/lib/libsignal-client-* && echo "\n\n" && exit 1) \
+	&& cd /tmp \
+	&& cp signal-cli-${SIGNAL_CLI_VERSION}-source/build/install/signal-cli/lib/libsignal-client-${LIBSIGNAL_CLIENT_VERSION}.jar libsignal-client.jar \
+	&& zip -qu libsignal-client.jar libsignal_jni.so \
+	&& cd /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source \
+	&& git apply /tmp/signal-cli-native.patch \
+	&& ./gradlew -q nativeCompile; \
 	elif [ "$(uname -m)" = "aarch64" ] ; then \
-		echo "Use native image from @morph027 (https://packaging.gitlab.io/signal-cli/) for arm64 - many thanks to @morph027" \
-		&& curl -fsSL https://packaging.gitlab.io/signal-cli/gpg.key | apt-key add - \
-		&& echo "deb https://packaging.gitlab.io/signal-cli focal main" > /etc/apt/sources.list.d/morph027-signal-cli.list \
-		&& mkdir -p /tmp/signal-cli-native \
-		&& cd /tmp/signal-cli-native \
-		#&& wget https://gitlab.com/packaging/signal-cli/-/jobs/3716873649/artifacts/download?file_type=archive -O /tmp/signal-cli-native/archive.zip \
-		#&& unzip archive.zip \
-		#&& mv signal-cli-native-arm64/*deb . \
-		&& apt-get -qq update \
-		&& apt-get -qq download signal-cli-native=${SIGNAL_CLI_NATIVE_PACKAGE_VERSION} < /dev/null > /dev/null \
-		&& ar x *.deb \
-		&& tar xf data.tar.gz \
-		&& mkdir -p /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile \
-		&& cp /tmp/signal-cli-native/usr/bin/signal-cli-native  /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile/signal-cli; \
-    elif [ "$(uname -m)" = "armv7l" ] ; then \
-		echo "GRAALVM doesn't support 32bit" \
-		&& echo "Creating temporary file, otherwise the below copy doesn't work for armv7" \
-		&& mkdir -p /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile \
-		&& touch /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile/signal-cli; \
-    else \
-		echo "Unknown architecture"; \
-    fi;
+	echo "Use native image from @morph027 (https://packaging.gitlab.io/signal-cli/) for arm64 - many thanks to @morph027" \
+	&& curl -fsSL https://packaging.gitlab.io/signal-cli/gpg.key | apt-key add - \
+	&& echo "deb https://packaging.gitlab.io/signal-cli focal main" > /etc/apt/sources.list.d/morph027-signal-cli.list \
+	&& mkdir -p /tmp/signal-cli-native \
+	&& cd /tmp/signal-cli-native \
+	#&& wget https://gitlab.com/packaging/signal-cli/-/jobs/3716873649/artifacts/download?file_type=archive -O /tmp/signal-cli-native/archive.zip \
+	#&& unzip archive.zip \
+	#&& mv signal-cli-native-arm64/*deb . \
+	&& apt-get -qq update \
+	&& apt-get -qq download signal-cli-native=${SIGNAL_CLI_NATIVE_PACKAGE_VERSION} < /dev/null > /dev/null \
+	&& ar x *.deb \
+	&& tar xf data.tar.gz \
+	&& mkdir -p /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile \
+	&& cp /tmp/signal-cli-native/usr/bin/signal-cli-native  /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile/signal-cli; \
+	elif [ "$(uname -m)" = "armv7l" ] ; then \
+	echo "GRAALVM doesn't support 32bit" \
+	&& echo "Creating temporary file, otherwise the below copy doesn't work for armv7" \
+	&& mkdir -p /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile \
+	&& touch /tmp/signal-cli-${SIGNAL_CLI_VERSION}-source/build/native/nativeCompile/signal-cli; \
+	else \
+	echo "Unknown architecture"; \
+	fi;
 
 # replace libsignal-client
 
@@ -125,7 +125,7 @@ RUN cd /tmp/signal-cli-${SIGNAL_CLI_VERSION}/lib \
 RUN cd /tmp/ \
 	&& zip -qu /tmp/signal-cli-${SIGNAL_CLI_VERSION}/lib/libsignal-client-${LIBSIGNAL_CLIENT_VERSION}.jar libsignal_jni.so \
 	&& zip -qr signal-cli-${SIGNAL_CLI_VERSION}.zip signal-cli-${SIGNAL_CLI_VERSION}/* \
-    && unzip -q /tmp/signal-cli-${SIGNAL_CLI_VERSION}.zip -d /opt \
+	&& unzip -q /tmp/signal-cli-${SIGNAL_CLI_VERSION}.zip -d /opt \
 	&& rm -f /tmp/signal-cli-${SIGNAL_CLI_VERSION}.zip
 
 COPY src/api /tmp/signal-cli-rest-api-src/api
@@ -175,9 +175,9 @@ RUN groupadd -g 1000 signal-api \
 
 # remove the temporary created signal-cli-native on armv7, as GRAALVM doesn't support 32bit
 RUN arch="$(uname -m)"; \
-        case "$arch" in \
-            armv7l) echo "GRAALVM doesn't support 32bit" && rm /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli-native /usr/bin/signal-cli-native  ;; \
-        esac;
+	case "$arch" in \
+	armv7l) echo "GRAALVM doesn't support 32bit" && rm /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli-native /usr/bin/signal-cli-native  ;; \
+	esac;
 
 EXPOSE ${PORT}
 
@@ -188,4 +188,4 @@ ENV SIGNAL_CLI_GID=1000
 ENTRYPOINT ["/entrypoint.sh"]
 
 HEALTHCHECK --interval=20s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/v1/health || exit 1
+	CMD curl -f http://localhost:${PORT}/v1/health || exit 1

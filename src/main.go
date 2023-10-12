@@ -3,19 +3,20 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/bbernhard/signal-cli-rest-api/api"
-	"github.com/bbernhard/signal-cli-rest-api/client"
-	docs "github.com/bbernhard/signal-cli-rest-api/docs"
-	"github.com/bbernhard/signal-cli-rest-api/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/robfig/cron/v3"
-	log "github.com/sirupsen/logrus"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
+	"github.com/sheophe/signal-cli-rest-api/api"
+	"github.com/sheophe/signal-cli-rest-api/client"
+	docs "github.com/sheophe/signal-cli-rest-api/docs"
+	"github.com/sheophe/signal-cli-rest-api/utils"
+	log "github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title Signal Cli REST API
@@ -135,7 +136,7 @@ func main() {
 		log.Fatal("Couldn't init Signal Client: ", err.Error())
 	}
 
-	api := api.NewApi(signalClient)
+	api := api.NewApi(signalClient, signalCliMode)
 	v1 := router.Group("/v1")
 	{
 		about := v1.Group("/about")
@@ -193,9 +194,11 @@ func main() {
 			groups.DELETE(":number/:groupid/admins", api.RemoveAdminsFromGroup)
 		}
 
-		link := v1.Group("qrcodelink")
+		link := v1.Group("link")
 		{
-			link.GET("", api.GetQrCodeLink)
+			link.GET("", api.GetDeviceLink)
+			link.GET("qrcode", api.GetLinkQrCode)
+			link.GET("await", api.GetDeviceLinkAwait)
 		}
 
 		devices := v1.Group("devices")
