@@ -850,11 +850,11 @@ func (a *Api) DeleteGroup(c *gin.Context) {
 // @Tags Devices
 // @Description Generate a URL for linking the device
 // @Produce  json
-// @Success 200 {object} client.SignalLinkUrl
+// @Success 200 {object} SignalLinkUrl
 // @Param device_name query string false "Device Name"
 // @Failure 400 {object} Error
 // @Router /v1/link [get]
-func (a *Api) GetDeviceLink(c *gin.Context) {
+func (a *Api) GetDeviceLinkUri(c *gin.Context) {
 	deviceName := c.Query("device_name")
 
 	if deviceName == "" && a.signalCliMode != client.JsonRpc {
@@ -917,7 +917,7 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 // @Tags Devices
 // @Description Wait until device is linked and return the number.
 // @Produce  json
-// @Success 200 {object} client.SignalLinkNumber
+// @Success 200 {object} SignalLinkNumber
 // @Param device_link_uri query string true "Device Link URI"
 // @Param device_name query string true "Device Name"
 // @Failure 400 {object} Error

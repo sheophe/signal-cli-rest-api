@@ -196,7 +196,7 @@ func main() {
 
 		link := v1.Group("link")
 		{
-			link.GET("", api.GetDeviceLink)
+			link.GET("", api.GetDeviceLinkUri)
 			link.GET("qrcode", api.GetLinkQrCode)
 			link.GET("await", api.GetDeviceLinkAwait)
 		}
