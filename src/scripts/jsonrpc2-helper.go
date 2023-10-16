@@ -84,47 +84,42 @@ func main() {
 
 	fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
 
-	saveSupervisonConf(ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
-
-	ctr += 1
+	saveSupervisonConf(&ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
 
 	items, err := os.ReadDir(signalCliConfigDataDir)
-	if err != nil {
-		log.Fatal("Couldn't read contents of ", signalCliConfigDataDir, ". Is your phone number properly registered? Please be aware that registering a phone number only works in normal/native mode and is currently not supported in json-rpc mode!")
-	}
-	for _, item := range items {
-		if item.IsDir() {
-			continue
-		}
-		filename := filepath.Base(item.Name())
-		isSignalCliLinkedNumberConfigFile, err := isSignalCliLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
-		if err != nil {
-			log.Error("Couldn't determine whether file ", filename, " is a signal-cli config file: ", err.Error())
-			continue
-		}
-
-		if strings.HasPrefix(filename, "+") || isSignalCliLinkedNumberConfigFile {
-			var number string = ""
-			if utils.IsPhoneNumber(filename) {
-				number = filename
-			} else if isSignalCliLinkedNumberConfigFile {
-				number, err = getUsernameFromLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
-				if err != nil {
-					log.Debug("Skipping ", filename, " as it is not a valid signal-cli config file: ", err.Error())
-					continue
-				}
-			} else {
-				log.Error("Skipping ", filename, " as it is not a valid phone number!")
+	if err == nil {
+		for _, item := range items {
+			if item.IsDir() {
+				continue
+			}
+			filename := filepath.Base(item.Name())
+			isSignalCliLinkedNumberConfigFile, err := isSignalCliLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
+			if err != nil {
+				log.Error("Couldn't determine whether file ", filename, " is a signal-cli config file: ", err.Error())
 				continue
 			}
 
-			fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
-			tcpPort := tcpBasePort + ctr
-			jsonRpc2ClientConfig.AddEntry(number, utils.JsonRpc2ClientConfigEntry{TcpPort: tcpPort, FifoPathname: fifoPathname})
+			if strings.HasPrefix(filename, "+") || isSignalCliLinkedNumberConfigFile {
+				var number string = ""
+				if utils.IsPhoneNumber(filename) {
+					number = filename
+				} else if isSignalCliLinkedNumberConfigFile {
+					number, err = getUsernameFromLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
+					if err != nil {
+						log.Debug("Skipping ", filename, " as it is not a valid signal-cli config file: ", err.Error())
+						continue
+					}
+				} else {
+					log.Error("Skipping ", filename, " as it is not a valid phone number!")
+					continue
+				}
 
-			saveSupervisonConf(ctr, tcpPort, fifoPathname, number, signalCliConfigDataDir)
+				fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
+				tcpPort := tcpBasePort + ctr
+				jsonRpc2ClientConfig.AddEntry(number, utils.JsonRpc2ClientConfigEntry{TcpPort: tcpPort, FifoPathname: fifoPathname})
 
-			ctr += 1
+				saveSupervisonConf(&ctr, tcpPort, fifoPathname, number, signalCliConfigDataDir)
+			}
 		}
 	}
 
@@ -135,7 +130,7 @@ func main() {
 	}
 }
 
-func saveSupervisonConf(ctr int64, tcpPort int64, fifoPathname, number, signalCliConfigDir string) {
+func saveSupervisonConf(ctr *int64, tcpPort int64, fifoPathname, number, signalCliConfigDir string) {
 	os.Remove(fifoPathname) //remove any existing named pipe
 
 	_, err := exec.Command("mkfifo", fifoPathname).Output()
@@ -150,7 +145,7 @@ func saveSupervisonConf(ctr int64, tcpPort int64, fifoPathname, number, signalCl
 		log.Fatal("Couldn't change permissions of fifo with name ", fifoPathname, ": ", err.Error())
 	}
 
-	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(ctr, 10)
+	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(*ctr, 10)
 	supervisorctlLogFolder := "/var/log/" + supervisorctlProgramName
 	_, err = exec.Command("mkdir", "-p", supervisorctlLogFolder).Output()
 	if err != nil {
@@ -160,11 +155,13 @@ func saveSupervisonConf(ctr int64, tcpPort int64, fifoPathname, number, signalCl
 	log.Info("Found number ", number, " and added it to jsonrpc2.yml")
 
 	//write supervisorctl config
-	supervisorctlConfigFilename := "/etc/supervisor/conf.d/" + "signal-cli-json-rpc-" + strconv.FormatInt(ctr, 10) + ".conf"
+	supervisorctlConfigFilename := "/etc/supervisor/conf.d/" + "signal-cli-json-rpc-" + strconv.FormatInt(*ctr, 10) + ".conf"
 	supervisorctlConfig := fmt.Sprintf(supervisorctlConfigTemplate, supervisorctlProgramName, supervisorctlProgramName,
 		tcpPort, fifoPathname, number, signalCliConfigDir, fifoPathname, supervisorctlProgramName, supervisorctlProgramName)
 	err = os.WriteFile(supervisorctlConfigFilename, []byte(supervisorctlConfig), 0644)
 	if err != nil {
 		log.Fatal("Couldn't write ", supervisorctlConfigFilename, ": ", err.Error())
 	}
+
+	*ctr += 1
 }

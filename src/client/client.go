@@ -326,8 +326,8 @@ func (s *SignalClient) Init() error {
 
 		s.jsonRpc2Clients = make(map[string]*JsonRpc2Client)
 
-		// client with empty number is used only for device linking
-		s.jsonRpc2Clients[""] = NewJsonRpc2Client(s.signalCliApiConfig, "")
+		// client with system number is used only for device linking
+		s.jsonRpc2Clients[""] = NewJsonRpc2Client(s.signalCliApiConfig, utils.SystemNumber)
 		err = s.jsonRpc2Clients[""].Dial("127.0.0.1:" + strconv.FormatInt(utils.NumberlessTcpPort, 10))
 		if err != nil {
 			return err
