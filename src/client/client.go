@@ -24,9 +24,16 @@ const groupPrefix = "group."
 
 const signalCliV2GroupError = "Cannot create a V2 group as self does not have a versioned profile"
 
-const endpointNotSupportedInJsonRpcMode = "This endpoint is not supported in JSON-RCP mode."
+const endpointNotSupportedInJsonRpcMode = "This endpoint is not supported in JSON-RPC mode."
 
-const endpointOnlySupportedInJsonRpcMode = "This endpoint is only supported in JSON-RCP mode."
+const endpointOnlySupportedInJsonRpcMode = "This endpoint is only supported in JSON-RPC mode."
+
+type NetProtocol int
+
+const (
+	Http NetProtocol = iota + 1
+	Https
+)
 
 type GroupPermission int
 

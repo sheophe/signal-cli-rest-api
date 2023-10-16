@@ -66,9 +66,19 @@ func main() {
 
 	router.Use(gin.Recovery())
 
-	port := utils.GetEnv("PORT", "8080")
+	port := utils.GetEnv("HTTP_PORT", "8080")
 	if _, err := strconv.Atoi(port); err != nil {
-		log.Fatal("Invalid PORT ", port, " set. PORT needs to be a number")
+		log.Fatal("Invalid HTTP_PORT ", port, " set. HTTP_PORTq needs to be a number")
+	}
+
+	netProtocol := client.Http
+	protocol := utils.GetEnv("PROTOCOL", "http")
+	if protocol == "http" {
+		netProtocol = client.Http
+	} else if protocol == "https" {
+		netProtocol = client.Https
+	} else {
+		log.Fatal("Unsupported network protocol: ", protocol)
 	}
 
 	defaultSwaggerIp := utils.GetEnv("HOST_IP", "127.0.0.1")
@@ -342,5 +352,18 @@ func main() {
 		c.Start()
 	}
 
-	router.Run()
+	if netProtocol == client.Http {
+		router.Run()
+	} else {
+		https_port := utils.GetEnv("HTTPS_PORT", "443")
+		if _, err := strconv.Atoi(port); err != nil {
+			log.Fatal("Invalid HTTPS_PORT ", port, " set. HTTPS_PORT needs to be a number")
+		}
+		cert := utils.GetEnv("CERT_FILE", "")
+		key_file := utils.GetEnv("KEY_FILE", "")
+		if cert == "" || key_file == "" {
+			log.Fatal("CERT_FILE and KEY_FILE must be set")
+		}
+		router.RunTLS(":"+string(https_port), cert, key_file)
+	}
 }

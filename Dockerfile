@@ -147,7 +147,8 @@ FROM eclipse-temurin:17-focal
 
 ENV GIN_MODE=release
 
-ENV PORT=8080
+ENV HTTP_PORT=8080
+ENV HTTPS_PORT=443
 
 ARG SIGNAL_CLI_VERSION
 ARG BUILD_VERSION_ARG
@@ -179,7 +180,8 @@ RUN arch="$(uname -m)"; \
 	armv7l) echo "GRAALVM doesn't support 32bit" && rm /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli-native /usr/bin/signal-cli-native  ;; \
 	esac;
 
-EXPOSE ${PORT}
+EXPOSE ${HTTP_PORT}
+EXPOSE ${HTTPS_PORT}
 
 ENV SIGNAL_CLI_CONFIG_DIR=/home/.local/share/signal-cli
 ENV SIGNAL_CLI_UID=1000

@@ -4,8 +4,13 @@ services:
     image: signal-cli-rest-api:latest
     environment:
       - MODE=json-rpc #supported modes: json-rpc, native, normal
+      - PROTOCOL=http
+      #- PROTOCOL=https
+      #- CERT_FILE=cert.pem
+      #- KEY_FILE=cert.key
       #- AUTO_RECEIVE_SCHEDULE=0 22 * * * #enable this parameter on demand (see description below)
     ports:
       - "8080:8080" #map docker port 8080 to host port 8080.
+      #- "443:443" #map docker port 443 to host port 443.
     volumes:
       - "./signal-cli-config:/home/.local/share/signal-cli" #map "signal-cli-config" folder on host system into docker container. the folder contains the password and cryptographic keys when a new number is registered
