@@ -1035,7 +1035,7 @@ func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 
 func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	if s.signalCliMode == JsonRpc {
-		jsonRpc2Client, err := s.getJsonRpc2Client("")
+		jsonRpc2Client, err := s.getJsonRpc2Client(utils.SystemNumber)
 		if err != nil {
 			return SignalLinkUrl{}, err
 		}

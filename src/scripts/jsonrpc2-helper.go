@@ -84,7 +84,7 @@ func main() {
 
 	fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
 
-	saveSupervisonConf(ctr, utils.NumberlessTcpPort, fifoPathname, "", signalCliConfigDataDir)
+	saveSupervisonConf(ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
 
 	ctr += 1
 
