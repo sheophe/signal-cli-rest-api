@@ -326,13 +326,6 @@ func (s *SignalClient) Init() error {
 
 		s.jsonRpc2Clients = make(map[string]*JsonRpc2Client)
 
-		// client with system number is used only for device linking
-		s.jsonRpc2Clients[""] = NewJsonRpc2Client(s.signalCliApiConfig, utils.SystemNumber)
-		err = s.jsonRpc2Clients[""].Dial("127.0.0.1:" + strconv.FormatInt(utils.NumberlessTcpPort, 10))
-		if err != nil {
-			return err
-		}
-
 		tcpPortsNumberMapping := s.jsonRpc2ClientConfig.GetTcpPortsForNumbers()
 		for number, tcpPort := range tcpPortsNumberMapping {
 			s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number)
@@ -608,6 +601,9 @@ func (s *SignalClient) SendV1(number string, message string, recipients []string
 }
 
 func (s *SignalClient) getJsonRpc2Client(number string) (*JsonRpc2Client, error) {
+	if number == utils.SystemNumber {
+		return nil, errors.New("Number not registered with JSON-RPC")
+	}
 	if val, ok := s.jsonRpc2Clients[number]; ok {
 		return val, nil
 	}
@@ -1035,9 +1031,9 @@ func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 
 func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	if s.signalCliMode == JsonRpc {
-		jsonRpc2Client, err := s.getJsonRpc2Client(utils.SystemNumber)
-		if err != nil {
-			return SignalLinkUrl{}, err
+		jsonRpc2Client, ok := s.jsonRpc2Clients[utils.SystemNumber]
+		if !ok {
+			return SignalLinkUrl{}, errors.New("No system number registered")
 		}
 
 		deviceLinkUri, err := jsonRpc2Client.getRaw("startLink", nil)

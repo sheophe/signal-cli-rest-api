@@ -84,6 +84,8 @@ func main() {
 
 	fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
 
+	jsonRpc2ClientConfig.AddEntry(utils.SystemNumber, utils.JsonRpc2ClientConfigEntry{TcpPort: utils.NumberlessTcpPort, FifoPathname: fifoPathname})
+
 	saveSupervisonConf(&ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
 
 	items, err := os.ReadDir(signalCliConfigDataDir)
