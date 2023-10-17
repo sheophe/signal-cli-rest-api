@@ -911,7 +911,7 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 		return
 	}
 
-	png, err := a.signalClient.GetLinkQrCode(deviceLinkUri, qrCodeVersionInt)
+	png, err := a.signalClient.GetLinkQrCode(strings.Replace(deviceLinkUri, "\\u0026", "&", -1), qrCodeVersionInt)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
 		return

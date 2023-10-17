@@ -1054,8 +1054,6 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		signalLinkUri.DeviceLinkUri = strings.Replace(signalLinkUri.DeviceLinkUri, "\\u0026", "&", -1)
-
 		return signalLinkUri, nil
 	}
 
@@ -1070,8 +1068,6 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	if err != nil {
 		return SignalLinkUrl{}, err
 	}
-
-	signalLinkUri.DeviceLinkUri = strings.Replace(signalLinkUri.DeviceLinkUri, "\\u0026", "&", -1)
 
 	return signalLinkUri, nil
 }
