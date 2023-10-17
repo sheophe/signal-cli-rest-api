@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"github.com/sheophe/signal-cli-rest-api/api"
@@ -62,7 +64,14 @@ func main() {
 		SkipPaths: []string{"/v1/health"}, //do not log the health requests (to avoid spamming the log file)
 	}))
 
-	router.Use(gin.Recovery())
+	router.Use(gin.Recovery(), cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET"},
+		AllowHeaders:     []string{"Origin"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	port := utils.GetEnv("HTTP_PORT", "8080")
 	if _, err := strconv.Atoi(port); err != nil {

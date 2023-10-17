@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/gabriel-vasile/mimetype v1.4.2
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/spec v0.20.8 // indirect
