@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -1053,6 +1054,17 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 		if err != nil {
 			return SignalLinkUrl{}, err
 		}
+
+		buf := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(buf)
+		enc.SetEscapeHTML(false)
+		err = enc.Encode(signalLinkUri.DeviceLinkUri)
+		if err != nil {
+			return SignalLinkUrl{}, err
+		}
+
+		str := buf.String()
+		signalLinkUri.DeviceLinkUri = str[1 : len(str)-1]
 
 		return signalLinkUri, nil
 	}
