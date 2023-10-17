@@ -82,7 +82,6 @@ func main() {
 	swaggerIp := utils.GetEnv("SWAGGER_IP", defaultSwaggerIp)
 
 	httpsPort := ""
-	var swaggerUrl func(*ginSwagger.Config)
 	netProtocol := client.Http
 	protocol := utils.GetEnv("PROTOCOL", "http")
 
@@ -90,7 +89,6 @@ func main() {
 	case "http":
 		netProtocol = client.Http
 		docs.SwaggerInfo.Host = swaggerIp + ":" + port
-		swaggerUrl = ginSwagger.URL("http://" + swaggerIp + ":" + string(port) + "/swagger/doc.json")
 
 	case "https":
 		netProtocol = client.Https
@@ -99,7 +97,6 @@ func main() {
 			log.Fatal("Invalid HTTPS_PORT ", port, " set. HTTPS_PORT needs to be a number")
 		}
 		docs.SwaggerInfo.Host = swaggerIp + ":" + httpsPort
-		swaggerUrl = ginSwagger.URL("https://" + swaggerIp + ":" + string(httpsPort) + "/swagger/doc.json")
 
 	default:
 		log.Fatal("Unsupported network protocol: ", protocol)
@@ -289,7 +286,7 @@ func main() {
 		}
 	}
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, swaggerUrl))
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	autoReceiveSchedule := utils.GetEnv("AUTO_RECEIVE_SCHEDULE", "")
 	if autoReceiveSchedule != "" {
