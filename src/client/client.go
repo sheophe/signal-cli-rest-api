@@ -1048,13 +1048,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		signalLinkUri := SignalLinkUrl{}
-		err = json.Unmarshal([]byte(deviceLinkUri), &signalLinkUri)
-		if err != nil {
-			return SignalLinkUrl{}, err
-		}
-
-		return signalLinkUri, nil
+		return SignalLinkUrl{DeviceLinkUri: deviceLinkUri}, nil
 	}
 
 	command := []string{"--config", s.signalCliConfig, "link", "-n", deviceName}
