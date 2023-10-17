@@ -1048,7 +1048,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		return SignalLinkUrl{DeviceLinkUri: strings.Replace(deviceLinkUri, "\\u0026", "&", -1)}, nil
+		return SignalLinkUrl{DeviceLinkUri: deviceLinkUri}, nil
 	}
 
 	command := []string{"--config", s.signalCliConfig, "link", "-n", deviceName}
