@@ -76,11 +76,14 @@ func main() {
 	var swaggerUrl func(*ginSwagger.Config)
 	netProtocol := client.Http
 	protocol := utils.GetEnv("PROTOCOL", "http")
-	if protocol == "http" {
+
+	switch protocol {
+	case "http":
 		netProtocol = client.Http
 		docs.SwaggerInfo.Host = swaggerIp + ":" + port
 		swaggerUrl = ginSwagger.URL("http://" + swaggerIp + ":" + string(port) + "/swagger/doc.json")
-	} else if protocol == "https" {
+
+	case "https":
 		netProtocol = client.Https
 		httpsPort = utils.GetEnv("HTTPS_PORT", "443")
 		if _, err := strconv.Atoi(port); err != nil {
@@ -88,7 +91,8 @@ func main() {
 		}
 		docs.SwaggerInfo.Host = swaggerIp + ":" + httpsPort
 		swaggerUrl = ginSwagger.URL("https://" + swaggerIp + ":" + string(httpsPort) + "/swagger/doc.json")
-	} else {
+
+	default:
 		log.Fatal("Unsupported network protocol: ", protocol)
 	}
 
