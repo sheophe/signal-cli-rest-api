@@ -1077,9 +1077,9 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (Sig
 		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
 	}
 
-	jsonRpc2Client, err := s.getJsonRpc2Client("")
-	if err != nil {
-		return SignalLinkNumber{}, err
+	jsonRpc2Client, ok := s.jsonRpc2Clients[utils.LinkNumber]
+	if !ok {
+		return SignalLinkNumber{}, errors.New("No system number registered")
 	}
 
 	type Request struct {
