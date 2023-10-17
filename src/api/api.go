@@ -944,7 +944,7 @@ func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 		return
 	}
 
-	number, err := a.signalClient.GetDeviceLinkAwait(strings.Replace(deviceLinkUri, "\\u0026", "&", -1), deviceName)
+	number, err := a.signalClient.GetDeviceLinkAwait(deviceLinkUri, deviceName)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
 		return
