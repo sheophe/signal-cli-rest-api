@@ -906,8 +906,8 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 	}
 
 	deviceLinkUri, err := url.QueryUnescape(deviceLinkUri)
-	if err == nil {
-		c.JSON(400, Error{Msg: "Invalid URL-encoded link"})
+	if err != nil {
+		c.JSON(400, Error{Msg: "Invalid URL-encoded link: " + err.Error()})
 		return
 	}
 
