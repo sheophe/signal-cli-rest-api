@@ -938,6 +938,12 @@ func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 		return
 	}
 
+	deviceLinkUri, err := url.QueryUnescape(deviceLinkUri)
+	if err != nil {
+		c.JSON(400, Error{Msg: "Invalid URL-encoded link: " + err.Error()})
+		return
+	}
+
 	number, err := a.signalClient.GetDeviceLinkAwait(deviceLinkUri, deviceName)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
