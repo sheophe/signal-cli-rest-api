@@ -1048,7 +1048,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		return SignalLinkUrl{DeviceLinkUri: deviceLinkUri}, nil
+		return SignalLinkUrl{DeviceLinkUri: strings.Replace(deviceLinkUri, "\\u0026", "&", -1)}, nil
 	}
 
 	command := []string{"--config", s.signalCliConfig, "link", "-n", deviceName}
@@ -1057,13 +1057,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 		return SignalLinkUrl{}, errors.New("Couldn't create QR code: " + err.Error())
 	}
 
-	signalLinkUri := SignalLinkUrl{}
-	err = json.Unmarshal([]byte(tsdeviceLink), &signalLinkUri)
-	if err != nil {
-		return SignalLinkUrl{}, err
-	}
-
-	return signalLinkUri, nil
+	return SignalLinkUrl{DeviceLinkUri: tsdeviceLink}, nil
 }
 
 func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (SignalLinkNumber, error) {
