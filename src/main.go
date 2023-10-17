@@ -57,8 +57,6 @@ func main() {
 	avatarTmpDir := flag.String("avatar-tmp-dir", "/tmp/", "Avatar tmp directory")
 	flag.Parse()
 
-	docs.SwaggerInfo.Schemes = []string{"http", "https"}
-
 	router := gin.New()
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		SkipPaths: []string{"/v1/health"}, //do not log the health requests (to avoid spamming the log file)
@@ -68,22 +66,33 @@ func main() {
 
 	port := utils.GetEnv("HTTP_PORT", "8080")
 	if _, err := strconv.Atoi(port); err != nil {
-		log.Fatal("Invalid HTTP_PORT ", port, " set. HTTP_PORTq needs to be a number")
-	}
-
-	netProtocol := client.Http
-	protocol := utils.GetEnv("PROTOCOL", "http")
-	if protocol == "http" {
-		netProtocol = client.Http
-	} else if protocol == "https" {
-		netProtocol = client.Https
-	} else {
-		log.Fatal("Unsupported network protocol: ", protocol)
+		log.Fatal("Invalid HTTP_PORT ", port, " set. HTTP_PORT needs to be a number")
 	}
 
 	defaultSwaggerIp := utils.GetEnv("HOST_IP", "127.0.0.1")
 	swaggerIp := utils.GetEnv("SWAGGER_IP", defaultSwaggerIp)
-	docs.SwaggerInfo.Host = swaggerIp + ":" + port
+
+	httpsPort := ""
+	var swaggerUrl func(*ginSwagger.Config)
+	netProtocol := client.Http
+	protocol := utils.GetEnv("PROTOCOL", "http")
+	if protocol == "http" {
+		netProtocol = client.Http
+		docs.SwaggerInfo.Host = swaggerIp + ":" + port
+		swaggerUrl = ginSwagger.URL("http://" + swaggerIp + ":" + string(port) + "/swagger/doc.json")
+	} else if protocol == "https" {
+		netProtocol = client.Https
+		httpsPort = utils.GetEnv("HTTPS_PORT", "443")
+		if _, err := strconv.Atoi(port); err != nil {
+			log.Fatal("Invalid HTTPS_PORT ", port, " set. HTTPS_PORT needs to be a number")
+		}
+		docs.SwaggerInfo.Host = swaggerIp + ":" + httpsPort
+		swaggerUrl = ginSwagger.URL("https://" + swaggerIp + ":" + string(httpsPort) + "/swagger/doc.json")
+	} else {
+		log.Fatal("Unsupported network protocol: ", protocol)
+	}
+
+	docs.SwaggerInfo.Schemes = []string{protocol}
 
 	log.Info("Started Signal Messenger REST API")
 
@@ -267,7 +276,6 @@ func main() {
 		}
 	}
 
-	swaggerUrl := ginSwagger.URL("http://" + swaggerIp + ":" + string(port) + "/swagger/doc.json")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, swaggerUrl))
 
 	autoReceiveSchedule := utils.GetEnv("AUTO_RECEIVE_SCHEDULE", "")
@@ -355,15 +363,11 @@ func main() {
 	if netProtocol == client.Http {
 		router.Run()
 	} else {
-		https_port := utils.GetEnv("HTTPS_PORT", "443")
-		if _, err := strconv.Atoi(port); err != nil {
-			log.Fatal("Invalid HTTPS_PORT ", port, " set. HTTPS_PORT needs to be a number")
-		}
 		cert := utils.GetEnv("CERT_FILE", "")
 		key_file := utils.GetEnv("KEY_FILE", "")
 		if cert == "" || key_file == "" {
 			log.Fatal("CERT_FILE and KEY_FILE must be set")
 		}
-		router.RunTLS(":"+string(https_port), cert, key_file)
+		router.RunTLS(":"+string(httpsPort), cert, key_file)
 	}
 }
