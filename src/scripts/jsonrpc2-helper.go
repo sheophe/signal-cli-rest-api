@@ -18,7 +18,7 @@ const supervisorctlConfigTemplate = `
 [program:%s]
 environment=JAVA_HOME=/opt/java/openjdk
 process_name=%s
-command=bash -c "nc -l -p %d <%s | signal-cli --output=json -u %s --config %s jsonRpc >%s"
+command=bash -c "nc -l -p %d <%s | signal-cli -vvv --output=json %s jsonRpc >%s"
 autostart=true
 autorestart=true
 startretries=10
@@ -78,14 +78,12 @@ func main() {
 
 	jsonRpc2ClientConfig := utils.NewJsonRpc2ClientConfig()
 
-	tcpBasePort := utils.NumberlessTcpPort + 1
+	tcpBasePort := utils.NumberlessTcpPort
 	fifoBasePathName := "/tmp/sigsocket"
 	var ctr int64 = 0
 
 	fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
-
 	jsonRpc2ClientConfig.AddEntry(utils.SystemNumber, utils.JsonRpc2ClientConfigEntry{TcpPort: utils.NumberlessTcpPort, FifoPathname: fifoPathname})
-
 	saveSupervisonConf(&ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
 
 	items, err := os.ReadDir(signalCliConfigDataDir)
@@ -156,10 +154,15 @@ func saveSupervisonConf(ctr *int64, tcpPort int64, fifoPathname, number, signalC
 
 	log.Info("Found number ", number, " and added it to jsonrpc2.yml")
 
+	accountParams := ""
+	if number != utils.SystemNumber {
+		accountParams = fmt.Sprintf("-u %s --config %s", number, signalCliConfigDir)
+	}
+
 	//write supervisorctl config
 	supervisorctlConfigFilename := "/etc/supervisor/conf.d/" + "signal-cli-json-rpc-" + strconv.FormatInt(*ctr, 10) + ".conf"
 	supervisorctlConfig := fmt.Sprintf(supervisorctlConfigTemplate, supervisorctlProgramName, supervisorctlProgramName,
-		tcpPort, fifoPathname, number, signalCliConfigDir, fifoPathname, supervisorctlProgramName, supervisorctlProgramName)
+		tcpPort, fifoPathname, accountParams, fifoPathname, supervisorctlProgramName, supervisorctlProgramName)
 	err = os.WriteFile(supervisorctlConfigFilename, []byte(supervisorctlConfig), 0644)
 	if err != nil {
 		log.Fatal("Couldn't write ", supervisorctlConfigFilename, ": ", err.Error())

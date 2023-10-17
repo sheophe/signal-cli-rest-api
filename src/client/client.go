@@ -341,9 +341,7 @@ func (s *SignalClient) Init() error {
 				return err
 			}
 
-			if number != utils.SystemNumber {
-				go s.jsonRpc2Clients[number].ReceiveData(number) //receive messages in goroutine
-			}
+			go s.jsonRpc2Clients[number].ReceiveData(number) //receive messages in goroutine
 		}
 	} else {
 		s.cliClient = NewCliClient(s.signalCliMode, s.signalCliApiConfig)
