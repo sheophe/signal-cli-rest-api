@@ -608,7 +608,7 @@ func (s *SignalClient) SendV1(number string, message string, recipients []string
 }
 
 func (s *SignalClient) getJsonRpc2Client(number string) (*JsonRpc2Client, error) {
-	if number == utils.SystemNumber {
+	if number == utils.LinkNumber {
 		return nil, errors.New("Number not registered with JSON-RPC")
 	}
 	if val, ok := s.jsonRpc2Clients[number]; ok {
@@ -1038,7 +1038,7 @@ func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 
 func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	if s.signalCliMode == JsonRpc {
-		jsonRpc2Client, ok := s.jsonRpc2Clients[utils.SystemNumber]
+		jsonRpc2Client, ok := s.jsonRpc2Clients[utils.LinkNumber]
 		if !ok {
 			return SignalLinkUrl{}, errors.New("No system number registered")
 		}

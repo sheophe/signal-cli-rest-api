@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -902,6 +903,12 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 			c.JSON(400, Error{Msg: "The qrcode_version parameter needs to be an integer!"})
 			return
 		}
+	}
+
+	deviceLinkUri, err := url.QueryUnescape(deviceLinkUri)
+	if err == nil {
+		c.JSON(400, Error{Msg: "Invalid URL-encoded link"})
+		return
 	}
 
 	png, err := a.signalClient.GetLinkQrCode(deviceLinkUri, qrCodeVersionInt)

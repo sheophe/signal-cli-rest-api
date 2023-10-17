@@ -4,7 +4,6 @@
         "description": "This is the Signal Cli REST API documentation.",
         "title": "Signal Cli REST API",
         "contact": {},
-        "license": {},
         "version": "1.0"
     },
     "basePath": "/",
@@ -225,7 +224,9 @@
                     }
                 ],
                 "responses": {
-                    "200": {},
+                    "200": {
+                        "description": "OK"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -265,7 +266,9 @@
                     }
                 ],
                 "responses": {
-                    "204": {},
+                    "204": {
+                        "description": "No Content"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -307,7 +310,9 @@
                     }
                 ],
                 "responses": {
-                    "204": {},
+                    "204": {
+                        "description": "No Content"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -340,7 +345,9 @@
                     }
                 ],
                 "responses": {
-                    "204": {},
+                    "204": {
+                        "description": "No Content"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -382,7 +389,9 @@
                     }
                 ],
                 "responses": {
-                    "204": {},
+                    "204": {
+                        "description": "No Content"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -1034,6 +1043,123 @@
                 }
             }
         },
+        "/v1/link": {
+            "get": {
+                "description": "Generate a URL for linking the device",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Devices"
+                ],
+                "summary": "Generate a URL for linking the device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device Name",
+                        "name": "device_name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/client.SignalLinkUrl"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/link/await": {
+            "get": {
+                "description": "Wait until device is linked and return the number.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Devices"
+                ],
+                "summary": "Wait until device is linked.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device Link URI",
+                        "name": "device_link_uri",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Device Name",
+                        "name": "device_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/client.SignalLinkNumber"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/link/qrcode": {
+            "get": {
+                "description": "Generate QR code from provided device link URI.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Devices"
+                ],
+                "summary": "Generate QR code from provided device link URI.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device Link URI",
+                        "name": "device_link_uri",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "QR coede version. Defaults to 10",
+                        "name": "qrcode_version",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/profiles/{number}": {
             "put": {
                 "description": "Set your name and optional an avatar.",
@@ -1065,47 +1191,6 @@
                 "responses": {
                     "204": {
                         "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/qrcodelink": {
-            "get": {
-                "description": "Link device and generate QR code",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Devices"
-                ],
-                "summary": "Link device and generate QR code.",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Device Name",
-                        "name": "device_name",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "QRCode Version (defaults to 10)",
-                        "name": "qrcode_version",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Image",
                         "schema": {
                             "type": "string"
                         }
@@ -1293,7 +1378,9 @@
                     }
                 ],
                 "responses": {
-                    "201": {},
+                    "201": {
+                        "description": "Created"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -1571,7 +1658,9 @@
                     }
                 ],
                 "responses": {
-                    "204": {},
+                    "204": {
+                        "description": "No Content"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -1657,7 +1746,6 @@
             "type": "object",
             "properties": {
                 "logging": {
-                    "type": "object",
                     "$ref": "#/definitions/api.LoggingConfiguration"
                 }
             }
@@ -1686,7 +1774,6 @@
                     "type": "string"
                 },
                 "permissions": {
-                    "type": "object",
                     "$ref": "#/definitions/api.GroupPermissions"
                 }
             }
@@ -2061,6 +2148,22 @@
                 },
                 "start": {
                     "type": "integer"
+                }
+            }
+        },
+        "client.SignalLinkNumber": {
+            "type": "object",
+            "properties": {
+                "number": {
+                    "type": "string"
+                }
+            }
+        },
+        "client.SignalLinkUrl": {
+            "type": "object",
+            "properties": {
+                "deviceLinkUri": {
+                    "type": "string"
                 }
             }
         }

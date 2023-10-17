@@ -7,9 +7,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const NumberlessTcpPort int64 = 6000
-
-const SystemNumber = "+00000000000"
+const LinkTcpPort int64 = 6000
+const LinkNumber = "+00000000000"
 
 type JsonRpc2ClientConfigEntry struct {
 	TcpPort      int64  `yaml:"tcp_port"`

@@ -78,13 +78,13 @@ func main() {
 
 	jsonRpc2ClientConfig := utils.NewJsonRpc2ClientConfig()
 
-	tcpBasePort := utils.NumberlessTcpPort
+	tcpBasePort := utils.LinkTcpPort
 	fifoBasePathName := "/tmp/sigsocket"
 	var ctr int64 = 0
 
 	fifoPathname := fifoBasePathName + strconv.FormatInt(ctr, 10)
-	jsonRpc2ClientConfig.AddEntry(utils.SystemNumber, utils.JsonRpc2ClientConfigEntry{TcpPort: utils.NumberlessTcpPort, FifoPathname: fifoPathname})
-	saveSupervisonConf(&ctr, utils.NumberlessTcpPort, fifoPathname, utils.SystemNumber, signalCliConfigDataDir)
+	jsonRpc2ClientConfig.AddEntry(utils.LinkNumber, utils.JsonRpc2ClientConfigEntry{TcpPort: utils.LinkTcpPort, FifoPathname: fifoPathname})
+	saveSupervisonConf(&ctr, utils.LinkTcpPort, fifoPathname, utils.LinkNumber, signalCliConfigDataDir)
 
 	items, err := os.ReadDir(signalCliConfigDataDir)
 	if err == nil {
@@ -155,7 +155,7 @@ func saveSupervisonConf(ctr *int64, tcpPort int64, fifoPathname, number, signalC
 	log.Info("Found number ", number, " and added it to jsonrpc2.yml")
 
 	accountParams := ""
-	if number != utils.SystemNumber {
+	if number != utils.LinkNumber {
 		accountParams = fmt.Sprintf("-u %s --config %s", number, signalCliConfigDir)
 	}
 
