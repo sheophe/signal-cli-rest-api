@@ -1073,6 +1073,8 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 }
 
 func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (SignalLinkNumber, error) {
+	deviceLinkUri = strings.Replace(deviceLinkUri, "\\u0026", "&", -1)
+
 	if s.signalCliMode != JsonRpc {
 		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
 	}
@@ -1103,7 +1105,9 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (Sig
 }
 
 func (s *SignalClient) GetLinkQrCode(linkUri string, qrCodeVersion int) ([]byte, error) {
-	q, err := qrcode.NewWithForcedVersion(string(linkUri), qrCodeVersion, qrcode.Highest)
+	linkUri = strings.Replace(linkUri, "\\u0026", "&", -1)
+
+	q, err := qrcode.NewWithForcedVersion(linkUri, qrCodeVersion, qrcode.Highest)
 	if err != nil {
 		return []byte{}, errors.New("Couldn't create QR code: " + err.Error())
 	}
