@@ -30,6 +30,8 @@ const endpointNotSupportedInJsonRpcMode = "This endpoint is not supported in JSO
 
 const endpointOnlySupportedInJsonRpcMode = "This endpoint is only supported in JSON-RPC mode."
 
+const defaultDeviceName = "Dockerized Signal API"
+
 type NetProtocol int
 
 const (
@@ -1076,7 +1078,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	return signalLinkUri, nil
 }
 
-func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (SignalLinkNumber, error) {
+func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumber, error) {
 	if s.signalCliMode != JsonRpc {
 		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
 	}
@@ -1085,6 +1087,8 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (Sig
 	if !ok {
 		return SignalLinkNumber{}, errors.New("No system number registered")
 	}
+
+	deviceName := utils.GetEnv("DEVICE_NAME", defaultDeviceName)
 
 	type Request struct {
 		DeviceLinkUri string `json:"deviceLinkUri"`
