@@ -76,6 +76,11 @@ func main() {
 
 	signalCliConfigDataDir := signalCliConfigDir + "data"
 
+	err := os.MkdirAll(signalCliConfigDataDir, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	jsonRpc2ClientConfig := utils.NewJsonRpc2ClientConfig()
 
 	tcpBasePort := utils.LinkTcpPort
