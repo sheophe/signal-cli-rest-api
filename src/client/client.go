@@ -1109,6 +1109,26 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumbe
 		return SignalLinkNumber{}, err
 	}
 
+	ctr := utils.NextCtr(s.signalCliConfig)
+	number := response.Number
+	tcpPort, _, err := utils.SaveSupervisorConf(&ctr, number, s.signalCliConfig)
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	err = utils.UpdateSupervisor()
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number)
+	err = s.jsonRpc2Clients[number].Dial("127.0.0.1:" + strconv.FormatInt(tcpPort, 10))
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	go s.jsonRpc2Clients[number].ReceiveData(number)
+
 	return response, nil
 }
 
