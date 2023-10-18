@@ -1056,7 +1056,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		log.Debug("Start link response: ", signalLinkUri)
+		log.Info("Start link response: ", signalLinkUri)
 
 		return signalLinkUri, nil
 	}
@@ -1092,7 +1092,7 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (Sig
 	}
 	request := Request{DeviceLinkUri: deviceLinkUri, DeviceName: deviceName}
 
-	log.Debug("Finish link request: ", request)
+	log.Info("Finish link request: ", request)
 
 	rawData, err := jsonRpc2Client.getRaw("finishLink", request)
 	if err != nil {
