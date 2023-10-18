@@ -47,23 +47,23 @@ func SignalCliConfigDir() string {
 	return signalCliConfigDir
 }
 
-func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort int64, fifoPathname string, err error) {
-	fifoPathname = fifoBasePathName + strconv.FormatInt(*ctr, 10)
+func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort int64, fifoPathName string, err error) {
+	fifoPathName = fifoBasePathName + strconv.FormatInt(*ctr, 10)
 	tcpPort = LinkTcpPort + *ctr
 
-	os.Remove(fifoPathname) //remove any existing named pipe
+	os.Remove(fifoPathName) //remove any existing named pipe
 
-	_, err = exec.Command("mkfifo", fifoPathname).Output()
+	_, err = exec.Command("mkfifo", fifoPathName).Output()
 	if err != nil {
-		err = fmt.Errorf("Couldn't create fifo with name %s: %s ", fifoPathname, err.Error())
+		err = fmt.Errorf("Couldn't create fifo with name %s: %s ", fifoPathName, err.Error())
 		return
 	}
 
 	uid := GetEnv("SIGNAL_CLI_UID", "1000")
 	gid := GetEnv("SIGNAL_CLI_GID", "1000")
-	_, err = exec.Command("chown", uid+":"+gid, fifoPathname).Output()
+	_, err = exec.Command("chown", uid+":"+gid, fifoPathName).Output()
 	if err != nil {
-		err = fmt.Errorf("Couldn't change permissions of fifo with name %s: %s", fifoPathname, err.Error())
+		err = fmt.Errorf("Couldn't change permissions of fifo with name %s: %s", fifoPathName, err.Error())
 		return
 	}
 
@@ -84,8 +84,17 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 
 	//write supervisorctl config
 	supervisorctlConfigFilename := supervisorConfDir + fmt.Sprintf(supervisorConfigFileNameTemplate, *ctr)
-	supervisorctlConfig := fmt.Sprintf(supervisorctlConfigTemplate, supervisorctlProgramName, supervisorctlProgramName,
-		tcpPort, fifoPathname, accountParams, fifoPathname, supervisorctlProgramName, supervisorctlProgramName)
+	supervisorctlConfig := fmt.Sprintf(
+		supervisorctlConfigTemplate,
+		supervisorctlProgramName,
+		supervisorctlProgramName,
+		tcpPort,
+		fifoPathName,
+		accountParams,
+		fifoPathName,
+		supervisorctlProgramName,
+		supervisorctlProgramName,
+	)
 	err = os.WriteFile(supervisorctlConfigFilename, []byte(supervisorctlConfig), 0644)
 	if err != nil {
 		err = fmt.Errorf("Couldn't write %s: %s", supervisorctlConfigFilename, err.Error())

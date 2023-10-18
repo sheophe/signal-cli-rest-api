@@ -47,7 +47,7 @@ func main() {
 	signalCliConfigDir := utils.SignalCliConfigDir()
 	signalCliConfigDataDir := signalCliConfigDir + "data"
 
-	err := os.MkdirAll(signalCliConfigDataDir, 0644)
+	err := os.MkdirAll(signalCliConfigDataDir, 0755)
 	if err != nil {
 		log.Fatal(err)
 	}
