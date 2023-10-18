@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -905,12 +904,6 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 		}
 	}
 
-	deviceLinkUri, err := url.QueryUnescape(deviceLinkUri)
-	if err != nil {
-		c.JSON(400, Error{Msg: "Invalid URL-encoded link: " + err.Error()})
-		return
-	}
-
 	png, err := a.signalClient.GetLinkQrCode(strings.Replace(deviceLinkUri, "\\u0026", "&", -1), qrCodeVersionInt)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
@@ -935,12 +928,6 @@ func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 
 	if deviceName == "" {
 		c.JSON(400, Error{Msg: "Please provide a name for the device"})
-		return
-	}
-
-	deviceLinkUri, err := url.QueryUnescape(deviceLinkUri)
-	if err != nil {
-		c.JSON(400, Error{Msg: "Invalid URL-encoded link: " + err.Error()})
 		return
 	}
 
