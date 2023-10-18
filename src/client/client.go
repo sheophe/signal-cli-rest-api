@@ -6,11 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/h2non/filetype"
@@ -1055,7 +1056,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, err
 		}
 
-		log.Printf("Start link response: %v", signalLinkUri)
+		log.Debug("Start link response: ", signalLinkUri)
 
 		return signalLinkUri, nil
 	}
@@ -1091,7 +1092,7 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, deviceName string) (Sig
 	}
 	request := Request{DeviceLinkUri: deviceLinkUri, DeviceName: deviceName}
 
-	log.Printf("Finish link request: %v", request)
+	log.Debug("Finish link request: ", request)
 
 	rawData, err := jsonRpc2Client.getRaw("finishLink", request)
 	if err != nil {
