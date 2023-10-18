@@ -919,11 +919,15 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 // @Produce  json
 // @Success 200 {object} client.SignalLinkNumber
 // @Param device_link_uri query string true "Device Link URI"
-// @Param device_name query string true "Device Name"
 // @Failure 400 {object} Error
 // @Router /v1/link/await [get]
 func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 	deviceLinkUri := c.Query("device_link_uri")
+
+	if deviceLinkUri == "" {
+		c.JSON(400, Error{Msg: "Please provide a link URI"})
+		return
+	}
 
 	number, err := a.signalClient.GetDeviceLinkAwait(strings.Replace(deviceLinkUri, "\\u0026", "&", -1))
 	if err != nil {
