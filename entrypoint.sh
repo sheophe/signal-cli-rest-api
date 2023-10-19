@@ -32,4 +32,4 @@ fi
 export HOST_IP=$(hostname -I | awk '{print $1}')
 
 # Start API as signal-api user
-exec setpriv --reuid=${SIGNAL_CLI_UID} --regid=${SIGNAL_CLI_GID} --init-groups --inh-caps=$caps signal-cli-rest-api -signal-cli-config=${SIGNAL_CLI_CONFIG_DIR}
+exec signal-cli-rest-api -signal-cli-config=${SIGNAL_CLI_CONFIG_DIR}
