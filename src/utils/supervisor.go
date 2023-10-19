@@ -18,7 +18,7 @@ command=bash -c "nc -l -p %d <%s | signal-cli -vvv --output=json %s jsonRpc >%s"
 autostart=true
 autorestart=true
 startretries=10
-user=signal-api
+user=root
 directory=/usr/bin/
 redirect_stderr=true
 stdout_logfile=/var/log/%s/out.log

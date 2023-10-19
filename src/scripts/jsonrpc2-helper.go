@@ -108,8 +108,8 @@ func main() {
 	}
 
 	// allow signal-api user to create files in /var/log and /home/.local/share/signal-cli
-	err = utils.ChownDirs()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = utils.ChownDirs()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
