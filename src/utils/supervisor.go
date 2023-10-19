@@ -128,6 +128,22 @@ func NextCtr(signalCliConfigDir string) (current int64) {
 	return
 }
 
+func ChownDirs() (err error) {
+	_, err = exec.Command("chown", "signal-api", "/var/log").Output()
+	if err != nil {
+		err = fmt.Errorf("Couldn't chown log folder: %s", err.Error())
+		return
+	}
+
+	_, err = exec.Command("chown", "signal-api", supervisorConfDir).Output()
+	if err != nil {
+		err = fmt.Errorf("Couldn't chown supervison confing folder: %s", err.Error())
+		return
+	}
+
+	return
+}
+
 func UpdateSupervisor() error {
 	if err := exec.Command("supervisorctl", "update").Run(); err != nil {
 		return fmt.Errorf("Couldn't update and restart supervisor: %s", err.Error())

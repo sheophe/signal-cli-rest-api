@@ -106,4 +106,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't persist jsonrpc2.yaml: ", err.Error())
 	}
+
+	// allow signal-api user to create files in /var/log and /home/.local/share/signal-cli
+	err = utils.ChownDirs()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
