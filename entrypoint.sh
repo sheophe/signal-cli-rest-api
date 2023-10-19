@@ -9,7 +9,7 @@ usermod -u ${SIGNAL_CLI_UID} signal-api
 groupmod -g ${SIGNAL_CLI_GID} signal-api
 
 # Fix permissions to ensure backward compatibility
-chown ${SIGNAL_CLI_UID}:${SIGNAL_CLI_GID} -R ${SIGNAL_CLI_CONFIG_DIR}
+# chown ${SIGNAL_CLI_UID}:${SIGNAL_CLI_GID} -R ${SIGNAL_CLI_CONFIG_DIR}
 
 # Show warning on docker exec
 cat <<EOF >> /root/.bashrc

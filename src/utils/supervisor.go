@@ -59,13 +59,13 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 		return
 	}
 
-	uid := GetEnv("SIGNAL_CLI_UID", "1000")
-	gid := GetEnv("SIGNAL_CLI_GID", "1000")
-	_, err = exec.Command("chown", uid+":"+gid, fifoPathName).Output()
-	if err != nil {
-		err = fmt.Errorf("Couldn't change permissions of fifo with name %s: %s", fifoPathName, err.Error())
-		return
-	}
+	// uid := GetEnv("SIGNAL_CLI_UID", "1000")
+	// gid := GetEnv("SIGNAL_CLI_GID", "1000")
+	// _, err = exec.Command("chown", uid+":"+gid, fifoPathName).Output()
+	// if err != nil {
+	// 	err = fmt.Errorf("Couldn't change permissions of fifo with name %s: %s", fifoPathName, err.Error())
+	// 	return
+	// }
 
 	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(*ctr, 10)
 	supervisorctlLogFolder := "/var/log/" + supervisorctlProgramName
