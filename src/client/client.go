@@ -120,6 +120,26 @@ type MessageMention struct {
 	Author string `json:"author"`
 }
 
+type ContactProfile struct {
+	LastUpdateTimestamp int64  `json:"lastUpdateTimestamp,omitempty"`
+	GivenName           string `json:"givenName,omitempty"`
+	FamilyName          string `json:"familyName,omitempty"`
+	About               string `json:"about,omitempty"`
+	AboutEmoji          string `json:"aboutEmoji,omitempty"`
+	MobileCoinAddress   string `json:"mobileCoinAddress,omitempty"`
+}
+
+type ContactEntry struct {
+	Number                string          `json:"number,omitempty"`
+	UUID                  string          `json:"uuid,omitempty"`
+	Username              string          `json:"username,omitempty"`
+	Name                  string          `json:"name,omitempty"`
+	Color                 string          `json:"color,omitempty"`
+	IsBlocked             bool            `json:"isBlocked"`
+	MessageExpirationTime int64           `json:"messageExpirationTime,omitempty"`
+	Profile               *ContactProfile `json:"profile,omitempty"`
+}
+
 type GroupEntry struct {
 	Name            string   `json:"name"`
 	Id              string   `json:"id"`
@@ -1090,11 +1110,23 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumbe
 
 	deviceName := utils.GetEnv("DEVICE_NAME", defaultDeviceName)
 
+	ctr, err := utils.NextCtr()
+	if err != nil {
+		return SignalLinkNumber{}, err
+	}
+
+	configDir := filepath.Join(s.signalCliConfig, strconv.FormatInt(ctr, 10))
+
 	type Request struct {
 		DeviceLinkUri string `json:"deviceLinkUri"`
 		DeviceName    string `json:"deviceName"`
+		ConfigDir     string `json:"configDir"`
 	}
-	request := Request{DeviceLinkUri: deviceLinkUri, DeviceName: deviceName}
+	request := Request{
+		DeviceLinkUri: deviceLinkUri,
+		DeviceName:    deviceName,
+		ConfigDir:     configDir,
+	}
 
 	log.Info("Finish link request: ", request)
 
@@ -1109,7 +1141,6 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumbe
 		return SignalLinkNumber{}, err
 	}
 
-	ctr := utils.NextCtr(s.signalCliConfig)
 	number := response.Number
 	tcpPort, _, err := utils.SaveSupervisorConf(&ctr, number, s.signalCliConfig)
 	if err != nil {
@@ -1702,6 +1733,34 @@ func (s *SignalClient) SendContacts(number string) error {
 		_, err = s.cliClient.Execute(true, cmd, "")
 	}
 	return err
+}
+
+func (s *SignalClient) GetContacts(number string) ([]ContactEntry, error) {
+	if s.signalCliMode != JsonRpc {
+		return []ContactEntry{}, errors.New(endpointOnlySupportedInJsonRpcMode)
+	}
+
+	type Request struct {
+		AllRecepients bool `json:"allRecepients"`
+	}
+	request := Request{AllRecepients: true}
+
+	jsonRpc2Client, err := s.getJsonRpc2Client(number)
+	if err != nil {
+		return []ContactEntry{}, err
+	}
+	rawData, err := jsonRpc2Client.getRaw("listContacts", request)
+	if err != nil {
+		return []ContactEntry{}, err
+	}
+
+	contactEntries := []ContactEntry{}
+	err = json.Unmarshal([]byte(rawData), &contactEntries)
+	if err != nil {
+		return []ContactEntry{}, err
+	}
+
+	return contactEntries, nil
 }
 
 func (s *SignalClient) UpdateContact(number string, recipient string, name *string, expirationInSeconds *int) error {

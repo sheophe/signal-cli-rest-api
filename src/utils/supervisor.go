@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	lockedfile "github.com/sheophe/signal-cli-rest-api/utils/internal/lockedfile"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +16,7 @@ const supervisorctlConfigTemplate = `
 [program:%s]
 environment=JAVA_HOME=/opt/java/openjdk
 process_name=%s
-command=bash -c "nc -l -p %d <%s | signal-cli -vvv --output=json %s jsonRpc >%s"
+command=bash -c "nc -l -p %d <%s | signal-cli -vvv --output=json %sjsonRpc %s>%s"
 autostart=true
 autorestart=true
 startretries=10
@@ -29,9 +31,11 @@ numprocs=1
 `
 
 const (
+	linkClientConfigDir              = "/root/.local/share/signal-cli/"
 	supervisorConfDir                = "/etc/supervisor/conf.d/"
 	supervisorConfigFileNameTemplate = "signal-cli-json-rpc-%d.conf"
 	fifoBasePathName                 = "/tmp/sigsocket"
+	ctrLockedFileName                = "/tmp/signal-cli-ctr.lock"
 )
 
 func SignalCliConfigDir() string {
@@ -59,14 +63,6 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 		return
 	}
 
-	// uid := GetEnv("SIGNAL_CLI_UID", "1000")
-	// gid := GetEnv("SIGNAL_CLI_GID", "1000")
-	// _, err = exec.Command("chown", uid+":"+gid, fifoPathName).Output()
-	// if err != nil {
-	// 	err = fmt.Errorf("Couldn't change permissions of fifo with name %s: %s", fifoPathName, err.Error())
-	// 	return
-	// }
-
 	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(*ctr, 10)
 	supervisorctlLogFolder := "/var/log/" + supervisorctlProgramName
 	_, err = exec.Command("mkdir", "-p", supervisorctlLogFolder).Output()
@@ -75,11 +71,15 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 		return
 	}
 
-	log.Info("Found number ", number, " and added it to jsonrpc2.yml")
+	log.Info("Found number ", number)
 
-	accountParams := ""
+	configDir := filepath.Join(signalCliConfigDir, strconv.FormatInt(*ctr, 10))
+	provisioningParams := ""
+	jsonRpcParams := ""
 	if number != LinkNumber {
-		accountParams = fmt.Sprintf("-u %s --config %s", number, signalCliConfigDir)
+		provisioningParams = fmt.Sprintf("-u %s --config %s ", number, configDir)
+	} else {
+		jsonRpcParams = "--receive-mode=manual "
 	}
 
 	//write supervisorctl config
@@ -90,11 +90,13 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 		supervisorctlProgramName,
 		tcpPort,
 		fifoPathName,
-		accountParams,
+		provisioningParams,
+		jsonRpcParams,
 		fifoPathName,
 		supervisorctlProgramName,
 		supervisorctlProgramName,
 	)
+
 	err = os.WriteFile(supervisorctlConfigFilename, []byte(supervisorctlConfig), 0644)
 	if err != nil {
 		err = fmt.Errorf("Couldn't write %s: %s", supervisorctlConfigFilename, err.Error())
@@ -105,48 +107,34 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 	return
 }
 
-func NextCtr(signalCliConfigDir string) (current int64) {
-	dir, err := os.ReadDir(signalCliConfigDir)
-	if err != nil {
-		return 0
-	}
-
-	for _, item := range dir {
-		if item.IsDir() {
-			continue
-		}
-
-		var ctr int64
-		n, _ := fmt.Sscanf(item.Name(), supervisorConfigFileNameTemplate, &ctr)
-
-		if n == 1 && ctr > current {
-			current = ctr
-		}
-	}
-
-	current += 1
-	return
-}
-
-func ChownDirs() (err error) {
-	_, err = exec.Command("chown", "signal-api", "/var/log").Output()
-	if err != nil {
-		err = fmt.Errorf("Couldn't chown log folder: %s", err.Error())
-		return
-	}
-
-	_, err = exec.Command("chown", "signal-api", supervisorConfDir).Output()
-	if err != nil {
-		err = fmt.Errorf("Couldn't chown supervison confing folder: %s", err.Error())
-		return
-	}
-
-	return
-}
-
 func UpdateSupervisor() error {
 	if err := exec.Command("supervisorctl", "update").Run(); err != nil {
 		return fmt.Errorf("Couldn't update and restart supervisor: %s", err.Error())
 	}
 	return nil
+}
+
+func InitCtr(current int64) (err error) {
+	file, err := lockedfile.Create(ctrLockedFileName)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if closeErr := file.Close(); err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	_, err = file.Write([]byte(strconv.FormatInt(current, 10)))
+	return
+}
+
+func NextCtr() (next int64, err error) {
+	err = lockedfile.Transform(ctrLockedFileName, func(lockedData []byte) ([]byte, error) {
+		current, _ := strconv.ParseInt(string(lockedData), 10, 64)
+		next = current + 1
+		return []byte(strconv.FormatInt(next, 10)), nil
+	})
+	return
 }

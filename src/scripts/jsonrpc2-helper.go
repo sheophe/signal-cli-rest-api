@@ -27,9 +27,9 @@ func isSignalCliLinkedNumberConfigFile(filename string) (bool, error) {
 	return false, nil
 }
 
-func getUsernameFromLinkedNumberConfigFile(filename string) (string, error) {
+func getNumberFromLinkedConfigFile(filename string) (string, error) {
 	type LinkedNumberConfigFile struct {
-		Username string `json:"username"`
+		Number string `json:"number"`
 	}
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
@@ -40,65 +40,71 @@ func getUsernameFromLinkedNumberConfigFile(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return linkedNumberConfigFile.Username, nil
+	return linkedNumberConfigFile.Number, nil
 }
 
 func main() {
 	signalCliConfigDir := utils.SignalCliConfigDir()
-	signalCliConfigDataDir := signalCliConfigDir + "data"
-
-	err := os.MkdirAll(signalCliConfigDataDir, 0755)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	jsonRpc2ClientConfig := utils.NewJsonRpc2ClientConfig()
+	ctr := int64(0)
 
-	var ctr int64 = 0
-
-	tcpPort, fifoPathname, err := utils.SaveSupervisorConf(&ctr, utils.LinkNumber, signalCliConfigDataDir)
+	tcpPort, fifoPathname, err := utils.SaveSupervisorConf(&ctr, utils.LinkNumber, signalCliConfigDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	jsonRpc2ClientConfig.AddEntry(utils.LinkNumber, utils.JsonRpc2ClientConfigEntry{TcpPort: tcpPort, FifoPathname: fifoPathname})
 
-	items, err := os.ReadDir(signalCliConfigDataDir)
+	items, err := os.ReadDir(signalCliConfigDir)
 	if err == nil {
-		for _, item := range items {
-			if item.IsDir() {
+		for _, dir := range items {
+			if !dir.IsDir() {
 				continue
 			}
-			filename := filepath.Base(item.Name())
-			isSignalCliLinkedNumberConfigFile, err := isSignalCliLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
-			if err != nil {
-				log.Error("Couldn't determine whether file ", filename, " is a signal-cli config file: ", err.Error())
-				continue
-			}
-
-			if strings.HasPrefix(filename, "+") || isSignalCliLinkedNumberConfigFile {
-				var number string = ""
-				if utils.IsPhoneNumber(filename) {
-					number = filename
-				} else if isSignalCliLinkedNumberConfigFile {
-					number, err = getUsernameFromLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
-					if err != nil {
-						log.Debug("Skipping ", filename, " as it is not a valid signal-cli config file: ", err.Error())
+			signalCliConfigDataDir := filepath.Join(signalCliConfigDir, dir.Name(), "data")
+			subitems, err := os.ReadDir(signalCliConfigDataDir)
+			if err == nil {
+				for _, item := range subitems {
+					if item.IsDir() {
 						continue
 					}
-				} else {
-					log.Error("Skipping ", filename, " as it is not a valid phone number!")
-					continue
-				}
+					filename := filepath.Base(item.Name())
+					isSignalCliLinkedNumberConfigFile, err := isSignalCliLinkedNumberConfigFile(signalCliConfigDataDir + "/" + filename)
+					if err != nil {
+						log.Error("Couldn't determine whether file ", filename, " is a signal-cli config file: ", err.Error())
+						continue
+					}
 
-				tcpPort, fifoPathname, err = utils.SaveSupervisorConf(&ctr, number, signalCliConfigDataDir)
-				if err != nil {
-					log.Fatal(err)
-				}
+					if strings.HasPrefix(filename, "+") || isSignalCliLinkedNumberConfigFile {
+						var number string = ""
+						if utils.IsPhoneNumber(filename) {
+							number = filename
+						} else if isSignalCliLinkedNumberConfigFile {
+							number, err = getNumberFromLinkedConfigFile(signalCliConfigDataDir + "/" + filename)
+							if err != nil {
+								log.Debug("Skipping ", filename, " as it is not a valid signal-cli config file: ", err.Error())
+								continue
+							}
+						} else {
+							log.Error("Skipping ", filename, " as it is not a valid phone number!")
+							continue
+						}
 
-				jsonRpc2ClientConfig.AddEntry(number, utils.JsonRpc2ClientConfigEntry{TcpPort: tcpPort, FifoPathname: fifoPathname})
+						tcpPort, fifoPathname, err = utils.SaveSupervisorConf(&ctr, number, signalCliConfigDir)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						jsonRpc2ClientConfig.AddEntry(number, utils.JsonRpc2ClientConfigEntry{TcpPort: tcpPort, FifoPathname: fifoPathname})
+					}
+				}
 			}
 		}
+	}
+
+	err = utils.InitCtr(ctr - 1)
+	if err != nil {
+		log.Fatal("Couldn't init /tmp/signal-cli-ctr.lock: ", err.Error())
 	}
 
 	// write jsonrpc.yml config file
@@ -106,10 +112,4 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't persist jsonrpc2.yaml: ", err.Error())
 	}
-
-	// allow signal-api user to create files in /var/log and /home/.local/share/signal-cli
-	// err = utils.ChownDirs()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 }

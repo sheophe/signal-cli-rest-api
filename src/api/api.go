@@ -1544,6 +1544,31 @@ func (a *Api) SearchForNumbers(c *gin.Context) {
 	c.JSON(200, searchResponse)
 }
 
+// @Summary Reads the info associated to a number on the contact list.
+// @Tags Contacts
+// @Description Reads the info associated to a number on the contact list.
+// @Accept  json
+// @Produce  json
+// @Param number path string true "Registered Phone Number"
+// @Success 200
+// @Failure 400 {object} Error
+// @Router /v1/contacts/{number} [get]
+func (a *Api) GetContact(c *gin.Context) {
+	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	contacts, err := a.signalClient.GetContacts(number)
+	if err != nil {
+		c.JSON(400, Error{Msg: err.Error()})
+		return
+	}
+
+	c.JSON(200, contacts)
+}
+
 // @Summary Updates the info associated to a number on the contact list. If the contact doesn’t exist yet, it will be added.
 // @Tags Contacts
 // @Description Updates the info associated to a number on the contact list.
@@ -1553,7 +1578,7 @@ func (a *Api) SearchForNumbers(c *gin.Context) {
 // @Success 204
 // @Param data body UpdateContactRequest true "Contact"
 // @Failure 400 {object} Error
-// @Router /v1/contacts{number} [put]
+// @Router /v1/contacts/{number} [put]
 func (a *Api) UpdateContact(c *gin.Context) {
 	number := c.Param("number")
 	if number == "" {
