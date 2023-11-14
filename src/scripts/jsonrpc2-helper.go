@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -87,6 +88,12 @@ func main() {
 							}
 						} else {
 							log.Error("Skipping ", filename, " as it is not a valid phone number!")
+							continue
+						}
+
+						ctr, err = strconv.ParseInt(dir.Name(), 10, 64)
+						if err != nil {
+							log.Error("Couldn't parse dir name '", dir.Name(), "' as integer: ", err.Error())
 							continue
 						}
 

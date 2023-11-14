@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,36 +13,34 @@ import (
 
 func ExtractToken(c *gin.Context) string {
 	bearerToken := c.Request.Header.Get("Authorization")
-	if len(strings.Split(bearerToken, " ")) == 2 {
-		return strings.Split(bearerToken, " ")[1]
+	split := strings.Split(bearerToken, " ")
+	if len(split) == 2 {
+		return split[1]
 	}
 	return ""
 }
 
 func ExtractTokenID(c *gin.Context) error {
 	tokenString := ExtractToken(c)
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(os.Getenv("API_SECRET")), nil
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("API_SECRET")), nil //TODO: replace this key
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("%s; token = %s", err.Error(), tokenString)
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if ok && token.Valid {
-		sub, exists := claims["sub"]
-		if !exists {
-			return fmt.Errorf("error: no sub in token")
-		}
-		subString, ok := sub.(string)
-		if !ok {
-			return fmt.Errorf("error: sub in token is not a string")
-		}
-		c.Keys["sub"] = subString
-		return nil
+	if !token.Valid {
+		return errors.New("token is invalid")
 	}
+	sub, exists := claims["sub"]
+	if !exists {
+		return fmt.Errorf("no sub in token")
+	}
+	subString, ok := sub.(string)
+	if !ok {
+		return fmt.Errorf("sub in token is not a string")
+	}
+	c.Set("sub", subString)
 	return nil
 }
 
@@ -49,7 +48,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := ExtractTokenID(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.String(http.StatusUnauthorized, "Unauthorized: %s, secret: '%s'", err.Error(), os.Getenv("API_SECRET"))
 			c.Abort()
 			return
 		}

@@ -17,7 +17,7 @@ const supervisorctlConfigTemplate = `
 environment=JAVA_HOME=/opt/java/openjdk
 process_name=%s
 command=bash -c "nc -l -p %d <%s | signal-cli -vvv --output=json %sjsonRpc %s>%s"
-autostart=true
+autostart=false
 autorestart=true
 startretries=10
 user=root
@@ -71,7 +71,7 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 		return
 	}
 
-	log.Info("Found number ", number)
+	log.Info("Adding number ", number)
 
 	configDir := filepath.Join(signalCliConfigDir, strconv.FormatInt(*ctr, 10))
 	provisioningParams := ""
@@ -116,19 +116,20 @@ func RereadSupervisorConf() error {
 
 func StartServiceByPort(tcpPort int64) error {
 	id := tcpPort - LinkTcpPort
-	if id < 1 {
+	if id < 0 {
 		return fmt.Errorf("invalid port %d for service", tcpPort)
 	}
 	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(id, 10)
-	if err := exec.Command("supervisorctl", "start", supervisorctlProgramName).Run(); err != nil {
-		return fmt.Errorf("couldn't start service: %s", err.Error())
+	output, err := exec.Command("supervisorctl", "start", supervisorctlProgramName).Output()
+	if err != nil {
+		return fmt.Errorf("couldn't start service: %s (%s)", err.Error(), string(output))
 	}
 	return nil
 }
 
 func StopServiceByPort(tcpPort int64) error {
 	id := tcpPort - LinkTcpPort
-	if id < 1 {
+	if id < 0 {
 		return fmt.Errorf("invalid port %d for service", tcpPort)
 	}
 	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(id, 10)

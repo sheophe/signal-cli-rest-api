@@ -358,11 +358,15 @@ func (s *SignalClient) Init() error {
 		}
 
 		s.jsonRpc2Clients = make(map[string]*JsonRpc2Client)
+		s.jsonRpc2Clients[utils.LinkNumber] = NewJsonRpc2Client(s.signalCliApiConfig, utils.LinkNumber, utils.LinkTcpPort, "")
+		s.jsonRpc2Clients[utils.LinkNumber].Start()
 
 		tcpPortsNumberMapping := s.jsonRpc2ClientConfig.GetTcpPortsForNumbers()
 		for number, tcpPort := range tcpPortsNumberMapping {
-			sub, ok := s.subStorage.GetSubByNumber(number)
-			if ok {
+			if number == utils.LinkNumber {
+				continue
+			}
+			if sub, ok := s.subStorage.GetSubByNumber(number); ok {
 				s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number, tcpPort, sub)
 			}
 		}

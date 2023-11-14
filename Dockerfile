@@ -1,10 +1,10 @@
 ARG LIBSIGNAL_CLIENT_VERSION=0.32.1
-ARG SIGNAL_CLI_VERSION=0.12.3
+ARG SIGNAL_CLI_VERSION=0.12.4
 ARG SWAG_VERSION=1.16.2
 
 ARG BUILD_VERSION_ARG=unset
 
-FROM golang:1.21-bullseye AS buildcontainer
+FROM golang:1.21-bookworm AS buildcontainer
 
 ARG LIBSIGNAL_CLIENT_VERSION
 ARG SIGNAL_CLI_VERSION
@@ -26,9 +26,17 @@ RUN arch="$(uname -m)"; \
 RUN dpkg-reconfigure debconf --frontend=noninteractive \
 	&& apt-get -qq update \
 	&& apt-get -qqy install --no-install-recommends \
-	wget openjdk-17-jre software-properties-common git locales zip unzip \
+	wget software-properties-common git locales zip unzip \
 	file build-essential libz-dev zlib1g-dev < /dev/null > /dev/null \
 	&& rm -rf /var/lib/apt/lists/* 
+
+RUN export ARCH=$(uname -m | sed -u 's/arm64/aarch64/g;s/x86_64/x64/g;s/amd64/x64/g') \
+	&& echo $ARCH \
+	&& cd /tmp/ \
+	&& wget https://download.oracle.com/java/21/latest/jdk-21_linux-$(echo $ARCH)_bin.tar.gz \
+	&& tar zxvf jdk-21_linux-$(echo $ARCH)_bin.tar.gz
+
+ENV PATH="${PATH}:/tmp/jdk-21.0.1/bin"
 
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 	dpkg-reconfigure --frontend=noninteractive locales && \
@@ -49,6 +57,7 @@ RUN cd /tmp/ \
 RUN cd /tmp/ \
 	&& git clone https://github.com/sheophe/signal-cli.git signal-cli \	
 	&& cd signal-cli \
+	&& git checkout master \
 	&& ./gradlew build \
 	&& tar xf build/distributions/signal-cli-${SIGNAL_CLI_VERSION}.tar
 
@@ -77,7 +86,7 @@ RUN cd /tmp/signal-cli-rest-api-src && swag init && go test ./client -v && go bu
 RUN cd /tmp/signal-cli-rest-api-src/scripts && go build -o jsonrpc2-helper 
 
 # Start a fresh container for release container
-FROM eclipse-temurin:17-focal
+FROM eclipse-temurin:21.0.1_12-jre-jammy
 
 ENV GIN_MODE=release
 

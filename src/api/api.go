@@ -319,7 +319,7 @@ func (a *Api) About(c *gin.Context) {
 // @Param data body SendMessageV2 true "Input Data"
 // @Router /v2/send [post]
 func (a *Api) SendV2(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	var req SendMessageV2
 	err := c.BindJSON(&req)
 	if err != nil {
@@ -455,7 +455,7 @@ func StringToBool(input string) bool {
 // @Param max_messages query string false "Specify the maximum number of messages to receive (default: unlimited)". Not available in json-rpc mode.
 // @Router /v1/receive/{number} [get]
 func (a *Api) Receive(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -527,7 +527,7 @@ func (a *Api) Receive(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number} [post]
 func (a *Api) CreateGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -595,7 +595,7 @@ func (a *Api) CreateGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/members [post]
 func (a *Api) AddMembersToGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -646,7 +646,7 @@ func (a *Api) AddMembersToGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/members [delete]
 func (a *Api) RemoveMembersFromGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -697,7 +697,7 @@ func (a *Api) RemoveMembersFromGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/admins [post]
 func (a *Api) AddAdminsToGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -748,7 +748,7 @@ func (a *Api) AddAdminsToGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/admins [delete]
 func (a *Api) RemoveAdminsFromGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -798,7 +798,7 @@ func (a *Api) RemoveAdminsFromGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number} [get]
 func (a *Api) GetGroups(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 
 	err := a.signalClient.CheckAccess(sub, number)
@@ -827,7 +827,7 @@ func (a *Api) GetGroups(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid} [get]
 func (a *Api) GetGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -866,7 +866,7 @@ func (a *Api) GetGroup(c *gin.Context) {
 // @Param groupid path string true "Group Id"
 // @Router /v1/groups/{number}/{groupid} [delete]
 func (a *Api) DeleteGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -975,7 +975,7 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 // @Router /v1/link/await [get]
 func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 	deviceLinkUri := c.Query("device_link_uri")
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 
 	if deviceLinkUri == "" {
 		c.JSON(400, Error{Msg: "Please provide a link URI"})
@@ -1094,7 +1094,7 @@ func (a *Api) ServeAttachment(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/profiles/{number} [put]
 func (a *Api) UpdateProfile(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1147,7 +1147,7 @@ func (a *Api) Health(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/identities/{number} [get]
 func (a *Api) ListIdentities(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1179,7 +1179,7 @@ func (a *Api) ListIdentities(c *gin.Context) {
 // @Param numberToTrust path string true "Number To Trust"
 // @Router /v1/identities/{number}/trust/{numberToTrust} [put]
 func (a *Api) TrustIdentity(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1296,7 +1296,7 @@ func (a *Api) GetConfiguration(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/block [post]
 func (a *Api) BlockGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1336,7 +1336,7 @@ func (a *Api) BlockGroup(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/join [post]
 func (a *Api) JoinGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1376,7 +1376,7 @@ func (a *Api) JoinGroup(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/quit [post]
 func (a *Api) QuitGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1416,7 +1416,7 @@ func (a *Api) QuitGroup(c *gin.Context) {
 // @Param data body UpdateGroupRequest true "Input Data"
 // @Router /v1/groups/{number}/{groupid} [put]
 func (a *Api) UpdateGroup(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1462,7 +1462,7 @@ func (a *Api) UpdateGroup(c *gin.Context) {
 // @Param data body Reaction true "Reaction"
 // @Router /v1/reactions/{number} [post]
 func (a *Api) SendReaction(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1521,7 +1521,7 @@ func (a *Api) SendReaction(c *gin.Context) {
 // @Param data body Reaction true "Reaction"
 // @Router /v1/reactions/{number} [delete]
 func (a *Api) RemoveReaction(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1576,7 +1576,7 @@ func (a *Api) RemoveReaction(c *gin.Context) {
 // @Param data body TypingIndicatorRequest true "Type"
 // @Router /v1/typing-indicator/{number} [put]
 func (a *Api) SendStartTyping(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1616,7 +1616,7 @@ func (a *Api) SendStartTyping(c *gin.Context) {
 // @Param data body TypingIndicatorRequest true "Type"
 // @Router /v1/typing-indicator/{number} [delete]
 func (a *Api) SendStopTyping(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1689,7 +1689,7 @@ func (a *Api) SearchForNumbers(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/contacts/{number} [get]
 func (a *Api) GetContact(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1722,7 +1722,7 @@ func (a *Api) GetContact(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/contacts/{number} [put]
 func (a *Api) UpdateContact(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1766,7 +1766,7 @@ func (a *Api) UpdateContact(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/devices/{number} [post]
 func (a *Api) AddDevice(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1805,7 +1805,7 @@ func (a *Api) AddDevice(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/configuration/{number}/settings [post]
 func (a *Api) SetTrustMode(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1851,7 +1851,7 @@ func (a *Api) SetTrustMode(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/configuration/{number}/settings [get]
 func (a *Api) GetTrustMode(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1885,7 +1885,7 @@ func (a *Api) GetTrustMode(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/contacts/{number}/sync [post]
 func (a *Api) SendContacts(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1916,7 +1916,7 @@ func (a *Api) SendContacts(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/auth/login/{number} [get]
 func (a *Api) Login(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
@@ -1942,7 +1942,7 @@ func (a *Api) Login(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/auth/logout/{number} [get]
 func (a *Api) Logout(c *gin.Context) {
-	sub := c.Keys["sub"].(string)
+	sub := c.MustGet("sub").(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})

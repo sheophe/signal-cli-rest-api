@@ -35,7 +35,6 @@ type JsonRpc2Client struct {
 	conn                     net.Conn
 	sub                      string
 	stop                     chan struct{}
-	stopped                  chan struct{}
 	receivedMessageResponses chan JsonRpc2MessageResponse
 	receivedMessages         chan JsonRpc2ReceivedMessage
 	lastTimeErrorMessageSent time.Time
@@ -135,9 +134,6 @@ func (r *JsonRpc2Client) ReceiveData(number string) {
 		case <-r.stop:
 			close(r.receivedMessageResponses)
 			close(r.receivedMessages)
-			close(r.stopped)
-
-			r.stopped = nil
 			return
 		default:
 			str, err := connbuf.ReadString('\n')
@@ -202,9 +198,7 @@ func (r *JsonRpc2Client) Stop() error {
 		return errors.New("cannot stop client: not started")
 	}
 
-	r.stopped = make(chan struct{})
 	close(r.stop)
-	<-r.stopped
 
 	err := r.conn.Close()
 	if err != nil {

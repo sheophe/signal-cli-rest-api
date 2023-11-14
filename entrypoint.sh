@@ -18,7 +18,6 @@ if [ "$MODE" = "json-rpc" ]
 then
 /usr/bin/jsonrpc2-helper
 service supervisor start
-# supervisorctl start all
 fi
 
 export HOST_IP=$(hostname -I | awk '{print $1}')
