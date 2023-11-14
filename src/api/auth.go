@@ -46,6 +46,10 @@ func ExtractTokenID(c *gin.Context) error {
 
 func JwtAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.RequestURI, "swagger") {
+			c.Next()
+			return
+		}
 		err := ExtractTokenID(c)
 		if err != nil {
 			c.String(http.StatusUnauthorized, "Unauthorized: %s, secret: '%s'", err.Error(), os.Getenv("API_SECRET"))
