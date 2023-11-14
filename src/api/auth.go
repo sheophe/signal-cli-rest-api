@@ -27,7 +27,7 @@ func ExtractTokenID(c *gin.Context) error {
 		return []byte(os.Getenv("API_SECRET")), nil //TODO: replace this key
 	})
 	if err != nil {
-		return fmt.Errorf("%s; token = %s", err.Error(), tokenString)
+		return err
 	}
 	if !token.Valid {
 		return errors.New("token is invalid")
