@@ -52,7 +52,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 		}
 		err := ExtractTokenID(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized: %s, secret: '%s'", err.Error(), os.Getenv("API_SECRET"))
+			c.String(http.StatusUnauthorized, "Unauthorized: %s", err.Error())
 			c.Abort()
 			return
 		}
