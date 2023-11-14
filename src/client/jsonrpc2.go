@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"strconv"
 	"time"
 
 	uuid "github.com/gofrs/uuid"
@@ -32,23 +33,30 @@ type JsonRpc2ReceivedMessage struct {
 
 type JsonRpc2Client struct {
 	conn                     net.Conn
+	sub                      string
+	stop                     chan struct{}
+	stopped                  chan struct{}
 	receivedMessageResponses chan JsonRpc2MessageResponse
 	receivedMessages         chan JsonRpc2ReceivedMessage
 	lastTimeErrorMessageSent time.Time
 	signalCliApiConfig       *utils.SignalCliApiConfig
 	number                   string
+	tcpPort                  int64
+	loggedIn                 bool
 }
 
-func NewJsonRpc2Client(signalCliApiConfig *utils.SignalCliApiConfig, number string) *JsonRpc2Client {
+func NewJsonRpc2Client(signalCliApiConfig *utils.SignalCliApiConfig, number string, tcpPort int64, sub string) *JsonRpc2Client {
 	return &JsonRpc2Client{
 		signalCliApiConfig: signalCliApiConfig,
 		number:             number,
+		tcpPort:            tcpPort,
+		sub:                sub,
 	}
 }
 
-func (r *JsonRpc2Client) Dial(address string) error {
+func (r *JsonRpc2Client) Dial() error {
 	var err error
-	r.conn, err = net.Dial("tcp", address)
+	r.conn, err = net.Dial("tcp", "127.0.0.1:"+strconv.FormatInt(r.tcpPort, 10))
 	if err != nil {
 		return err
 	}
@@ -123,41 +131,86 @@ func (r *JsonRpc2Client) getRaw(command string, args interface{}) (string, error
 func (r *JsonRpc2Client) ReceiveData(number string) {
 	connbuf := bufio.NewReader(r.conn)
 	for {
-		str, err := connbuf.ReadString('\n')
-		if err != nil {
-			elapsed := time.Since(r.lastTimeErrorMessageSent)
-			if (elapsed) > time.Duration(5*time.Minute) { //avoid spamming the log file and only log the message at max every 5 minutes
-				log.Error("Couldn't read data for number ", number, ": ", err.Error(), ". Is the number properly registered?")
-				r.lastTimeErrorMessageSent = time.Now()
-			}
-			continue
-		}
-		//log.Info("Received data = ", str)
+		select {
+		case <-r.stop:
+			close(r.receivedMessageResponses)
+			close(r.receivedMessages)
+			close(r.stopped)
 
-		var resp1 JsonRpc2ReceivedMessage
-		json.Unmarshal([]byte(str), &resp1)
-		if resp1.Method == "receive" {
-			select {
-			case r.receivedMessages <- resp1:
-				log.Debug("Message sent to golang channel")
-			default:
-				log.Debug("Couldn't send message to golang channel, as there's no receiver")
+			r.stopped = nil
+			return
+		default:
+			str, err := connbuf.ReadString('\n')
+			if err != nil {
+				elapsed := time.Since(r.lastTimeErrorMessageSent)
+				if (elapsed) > time.Duration(5*time.Minute) { //avoid spamming the log file and only log the message at max every 5 minutes
+					log.Error("Couldn't read data for number ", number, ": ", err.Error(), ". Is the number properly registered?")
+					r.lastTimeErrorMessageSent = time.Now()
+				}
+				continue
 			}
-			continue
-		}
 
-		var resp2 JsonRpc2MessageResponse
-		err = json.Unmarshal([]byte(str), &resp2)
-		if err == nil {
-			if resp2.Id != "" {
-				r.receivedMessageResponses <- resp2
+			var resp1 JsonRpc2ReceivedMessage
+			json.Unmarshal([]byte(str), &resp1)
+			if resp1.Method == "receive" {
+				select {
+				case r.receivedMessages <- resp1:
+					log.Debug("Message sent to golang channel")
+				default:
+					log.Debug("Couldn't send message to golang channel, as there's no receiver")
+				}
+				continue
 			}
-		} else {
-			log.Error("Received unparsable message: ", str)
+
+			var resp2 JsonRpc2MessageResponse
+			err = json.Unmarshal([]byte(str), &resp2)
+			if err == nil {
+				if resp2.Id != "" {
+					r.receivedMessageResponses <- resp2
+				}
+			} else {
+				log.Error("Received unparsable message: ", str)
+			}
 		}
 	}
 }
 
 func (r *JsonRpc2Client) GetReceiveChannel() chan JsonRpc2ReceivedMessage {
 	return r.receivedMessages
+}
+
+func (r *JsonRpc2Client) Start() error {
+	err := utils.StartServiceByPort(r.tcpPort)
+	if err != nil {
+		return err
+	}
+
+	err = r.Dial()
+	if err != nil {
+		return err
+	}
+
+	r.stop = make(chan struct{})
+	go r.ReceiveData(r.number)
+
+	r.loggedIn = true
+	return nil
+}
+
+func (r *JsonRpc2Client) Stop() error {
+	if r.stop == nil {
+		return errors.New("cannot stop client: not started")
+	}
+
+	r.stopped = make(chan struct{})
+	close(r.stop)
+	<-r.stopped
+
+	err := r.conn.Close()
+	if err != nil {
+		return err
+	}
+
+	r.loggedIn = false
+	return utils.StopServiceByPort(r.tcpPort)
 }

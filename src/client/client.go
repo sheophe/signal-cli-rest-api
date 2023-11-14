@@ -322,10 +322,11 @@ type SignalClient struct {
 	signalCliApiConfigPath   string
 	signalCliApiConfig       *utils.SignalCliApiConfig
 	cliClient                *CliClient
+	subStorage               *utils.SubStorage
 }
 
 func NewSignalClient(signalCliConfig string, attachmentTmpDir string, avatarTmpDir string, signalCliMode SignalCliMode,
-	jsonRpc2ClientConfigPath string, signalCliApiConfigPath string) *SignalClient {
+	jsonRpc2ClientConfigPath string, signalCliApiConfigPath string, subStorage *utils.SubStorage) *SignalClient {
 	return &SignalClient{
 		signalCliConfig:          signalCliConfig,
 		attachmentTmpDir:         attachmentTmpDir,
@@ -334,6 +335,7 @@ func NewSignalClient(signalCliConfig string, attachmentTmpDir string, avatarTmpD
 		jsonRpc2ClientConfigPath: jsonRpc2ClientConfigPath,
 		jsonRpc2Clients:          make(map[string]*JsonRpc2Client),
 		signalCliApiConfigPath:   signalCliApiConfigPath,
+		subStorage:               subStorage,
 	}
 }
 
@@ -359,13 +361,10 @@ func (s *SignalClient) Init() error {
 
 		tcpPortsNumberMapping := s.jsonRpc2ClientConfig.GetTcpPortsForNumbers()
 		for number, tcpPort := range tcpPortsNumberMapping {
-			s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number)
-			err := s.jsonRpc2Clients[number].Dial("127.0.0.1:" + strconv.FormatInt(tcpPort, 10))
-			if err != nil {
-				return err
+			sub, ok := s.subStorage.GetSubByNumber(number)
+			if ok {
+				s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number, tcpPort, sub)
 			}
-
-			go s.jsonRpc2Clients[number].ReceiveData(number) //receive messages in goroutine
 		}
 	} else {
 		s.cliClient = NewCliClient(s.signalCliMode, s.signalCliApiConfig)
@@ -1098,7 +1097,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	return signalLinkUri, nil
 }
 
-func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumber, error) {
+func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, sub string) (SignalLinkNumber, error) {
 	if s.signalCliMode != JsonRpc {
 		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
 	}
@@ -1142,25 +1141,26 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri string) (SignalLinkNumbe
 	}
 
 	number := response.Number
+
+	err = s.subStorage.LinkSub(sub, number, ctr)
+	if err != nil {
+		os.RemoveAll(configDir)
+		return SignalLinkNumber{}, err
+	}
+
 	tcpPort, _, err := utils.SaveSupervisorConf(&ctr, number, s.signalCliConfig)
 	if err != nil {
 		return SignalLinkNumber{}, err
 	}
 
-	err = utils.UpdateSupervisor()
+	err = utils.RereadSupervisorConf()
 	if err != nil {
 		return SignalLinkNumber{}, err
 	}
 
-	s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number)
-	err = s.jsonRpc2Clients[number].Dial("127.0.0.1:" + strconv.FormatInt(tcpPort, 10))
-	if err != nil {
-		return SignalLinkNumber{}, err
-	}
+	s.jsonRpc2Clients[number] = NewJsonRpc2Client(s.signalCliApiConfig, number, tcpPort, sub)
 
-	go s.jsonRpc2Clients[number].ReceiveData(number)
-
-	return response, nil
+	return response, err
 }
 
 func (s *SignalClient) GetLinkQrCode(linkUri string, qrCodeVersion int) ([]byte, error) {
@@ -1728,10 +1728,11 @@ func (s *SignalClient) SendContacts(number string) error {
 			return err
 		}
 		_, err = jsonRpc2Client.getRaw("sendContacts", nil)
-	} else {
-		cmd := []string{"--config", s.signalCliConfig, "-a", number, "sendContacts"}
-		_, err = s.cliClient.Execute(true, cmd, "")
+		return err
 	}
+
+	cmd := []string{"--config", s.signalCliConfig, "-a", number, "sendContacts"}
+	_, err = s.cliClient.Execute(true, cmd, "")
 	return err
 }
 
@@ -1783,16 +1784,17 @@ func (s *SignalClient) UpdateContact(number string, recipient string, name *stri
 			return err
 		}
 		_, err = jsonRpc2Client.getRaw("updateContact", request)
-	} else {
-		cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateContact", recipient}
-		if name != nil {
-			cmd = append(cmd, []string{"-n", *name}...)
-		}
-		if expirationInSeconds != nil {
-			cmd = append(cmd, []string{"-e", strconv.Itoa(*expirationInSeconds)}...)
-		}
-		_, err = s.cliClient.Execute(true, cmd, "")
+		return err
 	}
+
+	cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateContact", recipient}
+	if name != nil {
+		cmd = append(cmd, []string{"-n", *name}...)
+	}
+	if expirationInSeconds != nil {
+		cmd = append(cmd, []string{"-e", strconv.Itoa(*expirationInSeconds)}...)
+	}
+	_, err = s.cliClient.Execute(true, cmd, "")
 	return err
 }
 
@@ -1808,10 +1810,11 @@ func (s *SignalClient) AddDevice(number string, uri string) error {
 			return err
 		}
 		_, err = jsonRpc2Client.getRaw("addDevice", request)
-	} else {
-		cmd := []string{"--config", s.signalCliConfig, "-a", number, "addDevice", "--uri", uri}
-		_, err = s.cliClient.Execute(true, cmd, "")
+		return err
 	}
+
+	cmd := []string{"--config", s.signalCliConfig, "-a", number, "addDevice", "--uri", uri}
+	_, err = s.cliClient.Execute(true, cmd, "")
 	return err
 }
 
@@ -1826,4 +1829,72 @@ func (s *SignalClient) GetTrustMode(number string) utils.SignalCliTrustMode {
 		return utils.OnFirstUseTrust
 	}
 	return trustMode
+}
+
+func (s *SignalClient) IsNumberLoggedIn(number string) (bool, error) {
+	client, ok := s.jsonRpc2Clients[number]
+	if !ok {
+		return false, fmt.Errorf("unknown number %s", number)
+	}
+
+	if client.loggedIn {
+		return true, fmt.Errorf("number %s is already logged in", number)
+	}
+
+	return false, nil
+}
+
+func (s *SignalClient) CheckAccess(sub, number string) error {
+	client, ok := s.jsonRpc2Clients[number]
+	if !ok {
+		return fmt.Errorf("unknown number %s", number)
+	}
+
+	if !client.loggedIn {
+		return fmt.Errorf("number %s is not logged in", number)
+	}
+
+	if client.sub != sub {
+		return fmt.Errorf("number %s does not belong to this user", number)
+	}
+
+	return nil
+}
+
+func (s *SignalClient) Login(sub, number string) error {
+	_, err := s.IsNumberLoggedIn(number)
+	if err != nil {
+		return err
+	}
+
+	err = s.subStorage.CheckIfSubIsValid(sub, number)
+	if err != nil {
+		return err
+	}
+
+	err = s.jsonRpc2Clients[number].Start()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SignalClient) Logout(sub, number string) error {
+	loggedIn, _ := s.IsNumberLoggedIn(number)
+	if !loggedIn {
+		return fmt.Errorf("number %s is not logged in", number)
+	}
+
+	err := s.subStorage.CheckIfSubIsValid(sub, number)
+	if err != nil {
+		return err
+	}
+
+	err = s.jsonRpc2Clients[number].Stop()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

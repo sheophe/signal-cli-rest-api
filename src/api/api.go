@@ -183,163 +183,131 @@ func (a *Api) About(c *gin.Context) {
 	c.JSON(200, a.signalClient.About())
 }
 
-// @Summary Register a phone number.
-// @Tags Devices
-// @Description Register a phone number with the signal network.
-// @Accept  json
-// @Produce  json
-// @Success 201
-// @Failure 400 {object} Error
-// @Param number path string true "Registered Phone Number"
-// @Param data body RegisterNumberRequest false "Additional Settings"
-// @Router /v1/register/{number} [post]
-func (a *Api) RegisterNumber(c *gin.Context) {
-	number := c.Param("number")
+// // @Summary Register a phone number.
+// // @Tags Devices
+// // @Description Register a phone number with the signal network.
+// // @Accept  json
+// // @Produce  json
+// // @Success 201
+// // @Failure 400 {object} Error
+// // @Param number path string true "Registered Phone Number"
+// // @Param data body RegisterNumberRequest false "Additional Settings"
+// // @Router /v1/register/{number} [post]
+// func (a *Api) RegisterNumber(c *gin.Context) {
+// 	number := c.Param("number")
 
-	var req RegisterNumberRequest
+// 	var req RegisterNumberRequest
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(c.Request.Body)
-	if buf.String() != "" {
-		err := json.Unmarshal(buf.Bytes(), &req)
-		if err != nil {
-			log.Error("Couldn't register number: ", err.Error())
-			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
-			return
-		}
-	} else {
-		req.UseVoice = false
-		req.Captcha = ""
-	}
+// 	buf := new(bytes.Buffer)
+// 	buf.ReadFrom(c.Request.Body)
+// 	if buf.String() != "" {
+// 		err := json.Unmarshal(buf.Bytes(), &req)
+// 		if err != nil {
+// 			log.Error("Couldn't register number: ", err.Error())
+// 			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
+// 			return
+// 		}
+// 	} else {
+// 		req.UseVoice = false
+// 		req.Captcha = ""
+// 	}
 
-	if number == "" {
-		c.JSON(400, gin.H{"error": "Please provide a number"})
-		return
-	}
+// 	if number == "" {
+// 		c.JSON(400, gin.H{"error": "Please provide a number"})
+// 		return
+// 	}
 
-	err := a.signalClient.RegisterNumber(number, req.UseVoice, req.Captcha)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.Writer.WriteHeader(201)
-}
+// 	err := a.signalClient.RegisterNumber(number, req.UseVoice, req.Captcha)
+// 	if err != nil {
+// 		c.JSON(400, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	c.Writer.WriteHeader(201)
+// }
 
-// @Summary Unregister a phone number.
-// @Tags Devices
-// @Description Disables push support for this device. **WARNING:** If *delete_account* is set to *true*, the account will be deleted from the Signal Server. This cannot be undone without loss.
-// @Accept  json
-// @Produce  json
-// @Success 204
-// @Failure 400 {object} Error
-// @Param number path string true "Registered Phone Number"
-// @Param data body UnregisterNumberRequest false "Additional Settings"
-// @Router /v1/unregister/{number} [post]
-func (a *Api) UnregisterNumber(c *gin.Context) {
-	number := c.Param("number")
+// // @Summary Unregister a phone number.
+// // @Tags Devices
+// // @Description Disables push support for this device. **WARNING:** If *delete_account* is set to *true*, the account will be deleted from the Signal Server. This cannot be undone without loss.
+// // @Accept  json
+// // @Produce  json
+// // @Success 204
+// // @Failure 400 {object} Error
+// // @Param number path string true "Registered Phone Number"
+// // @Param data body UnregisterNumberRequest false "Additional Settings"
+// // @Router /v1/unregister/{number} [post]
+// func (a *Api) UnregisterNumber(c *gin.Context) {
+// 	number := c.Param("number")
 
-	deleteAccount := false
-	deleteLocalData := false
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(c.Request.Body)
-	if buf.String() != "" {
-		var req UnregisterNumberRequest
-		err := json.Unmarshal(buf.Bytes(), &req)
-		if err != nil {
-			log.Error("Couldn't unregister number: ", err.Error())
-			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
-			return
-		}
-		deleteAccount = req.DeleteAccount
-		deleteLocalData = req.DeleteLocalData
-	}
+// 	deleteAccount := false
+// 	deleteLocalData := false
+// 	buf := new(bytes.Buffer)
+// 	buf.ReadFrom(c.Request.Body)
+// 	if buf.String() != "" {
+// 		var req UnregisterNumberRequest
+// 		err := json.Unmarshal(buf.Bytes(), &req)
+// 		if err != nil {
+// 			log.Error("Couldn't unregister number: ", err.Error())
+// 			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
+// 			return
+// 		}
+// 		deleteAccount = req.DeleteAccount
+// 		deleteLocalData = req.DeleteLocalData
+// 	}
 
-	err := a.signalClient.UnregisterNumber(number, deleteAccount, deleteLocalData)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.Writer.WriteHeader(204)
-}
+// 	err := a.signalClient.UnregisterNumber(number, deleteAccount, deleteLocalData)
+// 	if err != nil {
+// 		c.JSON(400, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	c.Writer.WriteHeader(204)
+// }
 
-// @Summary Verify a registered phone number.
-// @Tags Devices
-// @Description Verify a registered phone number with the signal network.
-// @Accept  json
-// @Produce  json
-// @Success 201 {string} string "OK"
-// @Failure 400 {object} Error
-// @Param number path string true "Registered Phone Number"
-// @Param data body VerifyNumberSettings false "Additional Settings"
-// @Param token path string true "Verification Code"
-// @Router /v1/register/{number}/verify/{token} [post]
-func (a *Api) VerifyRegisteredNumber(c *gin.Context) {
-	number := c.Param("number")
-	token := c.Param("token")
+// // @Summary Verify a registered phone number.
+// // @Tags Devices
+// // @Description Verify a registered phone number with the signal network.
+// // @Accept  json
+// // @Produce  json
+// // @Success 201 {string} string "OK"
+// // @Failure 400 {object} Error
+// // @Param number path string true "Registered Phone Number"
+// // @Param data body VerifyNumberSettings false "Additional Settings"
+// // @Param token path string true "Verification Code"
+// // @Router /v1/register/{number}/verify/{token} [post]
+// func (a *Api) VerifyRegisteredNumber(c *gin.Context) {
+// 	number := c.Param("number")
+// 	token := c.Param("token")
 
-	pin := ""
-	var req VerifyNumberSettings
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(c.Request.Body)
-	if buf.String() != "" {
-		err := json.Unmarshal(buf.Bytes(), &req)
-		if err != nil {
-			log.Error("Couldn't verify number: ", err.Error())
-			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
-			return
-		}
-		pin = req.Pin
-	}
+// 	pin := ""
+// 	var req VerifyNumberSettings
+// 	buf := new(bytes.Buffer)
+// 	buf.ReadFrom(c.Request.Body)
+// 	if buf.String() != "" {
+// 		err := json.Unmarshal(buf.Bytes(), &req)
+// 		if err != nil {
+// 			log.Error("Couldn't verify number: ", err.Error())
+// 			c.JSON(400, Error{Msg: "Couldn't process request - invalid request."})
+// 			return
+// 		}
+// 		pin = req.Pin
+// 	}
 
-	if number == "" {
-		c.JSON(400, gin.H{"error": "Please provide a number"})
-		return
-	}
+// 	if number == "" {
+// 		c.JSON(400, gin.H{"error": "Please provide a number"})
+// 		return
+// 	}
 
-	if token == "" {
-		c.JSON(400, gin.H{"error": "Please provide a verification code"})
-		return
-	}
+// 	if token == "" {
+// 		c.JSON(400, gin.H{"error": "Please provide a verification code"})
+// 		return
+// 	}
 
-	err := a.signalClient.VerifyRegisteredNumber(number, token, pin)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.Writer.WriteHeader(201)
-}
-
-// @Summary Send a signal message.
-// @Tags Messages
-// @Description Send a signal message
-// @Accept  json
-// @Produce  json
-// @Success 201 {string} string "OK"
-// @Failure 400 {object} Error
-// @Param data body SendMessageV1 true "Input Data"
-// @Router /v1/send [post]
-// @Deprecated
-func (a *Api) Send(c *gin.Context) {
-
-	var req SendMessageV1
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
-		return
-	}
-
-	base64Attachments := []string{}
-	if req.Base64Attachment != "" {
-		base64Attachments = append(base64Attachments, req.Base64Attachment)
-	}
-
-	timestamp, err := a.signalClient.SendV1(req.Number, req.Message, req.Recipients, base64Attachments, req.IsGroup)
-	if err != nil {
-		c.JSON(400, Error{Msg: err.Error()})
-		return
-	}
-	c.JSON(201, SendMessageResponse{Timestamp: strconv.FormatInt(timestamp.Timestamp, 10)})
-}
+// 	err := a.signalClient.VerifyRegisteredNumber(number, token, pin)
+// 	if err != nil {
+// 		c.JSON(400, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	c.Writer.WriteHeader(201)
+// }
 
 // @Summary Send a signal message.
 // @Tags Messages
@@ -351,6 +319,7 @@ func (a *Api) Send(c *gin.Context) {
 // @Param data body SendMessageV2 true "Input Data"
 // @Router /v2/send [post]
 func (a *Api) SendV2(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	var req SendMessageV2
 	err := c.BindJSON(&req)
 	if err != nil {
@@ -366,6 +335,12 @@ func (a *Api) SendV2(c *gin.Context) {
 
 	if req.Number == "" {
 		c.JSON(400, gin.H{"error": "Couldn't process request - please provide a valid number"})
+		return
+	}
+
+	err = a.signalClient.CheckAccess(sub, req.Number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -463,10 +438,7 @@ func wsPing(ws *websocket.Conn, stop chan struct{}) {
 }
 
 func StringToBool(input string) bool {
-	if input == "true" {
-		return true
-	}
-	return false
+	return input == "true"
 }
 
 // @Summary Receive Signal Messages.
@@ -483,7 +455,18 @@ func StringToBool(input string) bool {
 // @Param max_messages query string false "Specify the maximum number of messages to receive (default: unlimited)". Not available in json-rpc mode.
 // @Router /v1/receive/{number} [get]
 func (a *Api) Receive(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
 
 	if a.signalClient.GetSignalCliMode() == client.JsonRpc {
 		ws, err := connectionUpgrader.Upgrade(c.Writer, c.Request, nil)
@@ -544,10 +527,21 @@ func (a *Api) Receive(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number} [post]
 func (a *Api) CreateGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
 
 	var req CreateGroupRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -601,9 +595,16 @@ func (a *Api) CreateGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/members [post]
 func (a *Api) AddMembersToGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -614,7 +615,7 @@ func (a *Api) AddMembersToGroup(c *gin.Context) {
 	}
 
 	var req ChangeGroupMembersRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -645,9 +646,16 @@ func (a *Api) AddMembersToGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/members [delete]
 func (a *Api) RemoveMembersFromGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -658,7 +666,7 @@ func (a *Api) RemoveMembersFromGroup(c *gin.Context) {
 	}
 
 	var req ChangeGroupMembersRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -689,9 +697,16 @@ func (a *Api) RemoveMembersFromGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/admins [post]
 func (a *Api) AddAdminsToGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -702,7 +717,7 @@ func (a *Api) AddAdminsToGroup(c *gin.Context) {
 	}
 
 	var req ChangeGroupAdminsRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -733,9 +748,16 @@ func (a *Api) AddAdminsToGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number}/{groupid}/admins [delete]
 func (a *Api) RemoveAdminsFromGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -746,7 +768,7 @@ func (a *Api) RemoveAdminsFromGroup(c *gin.Context) {
 	}
 
 	var req ChangeGroupAdminsRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -776,7 +798,14 @@ func (a *Api) RemoveAdminsFromGroup(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/groups/{number} [get]
 func (a *Api) GetGroups(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
 
 	groups, err := a.signalClient.GetGroups(number)
 	if err != nil {
@@ -798,7 +827,19 @@ func (a *Api) GetGroups(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid} [get]
 func (a *Api) GetGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	groupId := c.Param("groupid")
 
 	groupEntry, err := a.signalClient.GetGroup(number, groupId)
@@ -825,9 +866,20 @@ func (a *Api) GetGroup(c *gin.Context) {
 // @Param groupid path string true "Group Id"
 // @Router /v1/groups/{number}/{groupid} [delete]
 func (a *Api) DeleteGroup(c *gin.Context) {
-	base64EncodedGroupId := c.Param("groupid")
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
 
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
+	base64EncodedGroupId := c.Param("groupid")
 	if base64EncodedGroupId == "" {
 		c.JSON(400, Error{Msg: "Please specify a group id"})
 		return
@@ -923,13 +975,14 @@ func (a *Api) GetLinkQrCode(c *gin.Context) {
 // @Router /v1/link/await [get]
 func (a *Api) GetDeviceLinkAwait(c *gin.Context) {
 	deviceLinkUri := c.Query("device_link_uri")
+	sub := c.Keys["sub"].(string)
 
 	if deviceLinkUri == "" {
 		c.JSON(400, Error{Msg: "Please provide a link URI"})
 		return
 	}
 
-	number, err := a.signalClient.GetDeviceLinkAwait(strings.Replace(deviceLinkUri, "\\u0026", "&", -1))
+	number, err := a.signalClient.GetDeviceLinkAwait(strings.Replace(deviceLinkUri, "\\u0026", "&", -1), sub)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
 		return
@@ -1041,15 +1094,21 @@ func (a *Api) ServeAttachment(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/profiles/{number} [put]
 func (a *Api) UpdateProfile(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
-
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req UpdateProfileRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		log.Error(err.Error())
@@ -1088,10 +1147,16 @@ func (a *Api) Health(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Router /v1/identities/{number} [get]
 func (a *Api) ListIdentities(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
-
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1114,10 +1179,16 @@ func (a *Api) ListIdentities(c *gin.Context) {
 // @Param numberToTrust path string true "Number To Trust"
 // @Router /v1/identities/{number}/trust/{numberToTrust} [put]
 func (a *Api) TrustIdentity(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
-
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1128,7 +1199,7 @@ func (a *Api) TrustIdentity(c *gin.Context) {
 	}
 
 	var req TrustIdentityRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		log.Error(err.Error())
@@ -1225,9 +1296,16 @@ func (a *Api) GetConfiguration(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/block [post]
 func (a *Api) BlockGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1258,9 +1336,16 @@ func (a *Api) BlockGroup(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/join [post]
 func (a *Api) JoinGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1291,9 +1376,16 @@ func (a *Api) JoinGroup(c *gin.Context) {
 // @Param groupid path string true "Group ID"
 // @Router /v1/groups/{number}/{groupid}/quit [post]
 func (a *Api) QuitGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1324,9 +1416,16 @@ func (a *Api) QuitGroup(c *gin.Context) {
 // @Param data body UpdateGroupRequest true "Input Data"
 // @Router /v1/groups/{number}/{groupid} [put]
 func (a *Api) UpdateGroup(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1363,15 +1462,26 @@ func (a *Api) UpdateGroup(c *gin.Context) {
 // @Param data body Reaction true "Reaction"
 // @Router /v1/reactions/{number} [post]
 func (a *Api) SendReaction(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
+	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req Reaction
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		log.Error(err.Error())
 		return
 	}
-
-	number := c.Param("number")
 
 	if req.Recipient == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - recipient missing"})
@@ -1411,15 +1521,26 @@ func (a *Api) SendReaction(c *gin.Context) {
 // @Param data body Reaction true "Reaction"
 // @Router /v1/reactions/{number} [delete]
 func (a *Api) RemoveReaction(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
+	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req Reaction
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		log.Error(err.Error())
 		return
 	}
-
-	number := c.Param("number")
 
 	if req.Recipient == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - recipient missing"})
@@ -1455,17 +1576,24 @@ func (a *Api) RemoveReaction(c *gin.Context) {
 // @Param data body TypingIndicatorRequest true "Type"
 // @Router /v1/typing-indicator/{number} [put]
 func (a *Api) SendStartTyping(c *gin.Context) {
-	var req TypingIndicatorRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
-		log.Error(err.Error())
-		return
-	}
-
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
+	var req TypingIndicatorRequest
+	err = c.BindJSON(&req)
+	if err != nil {
+		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
+		log.Error(err.Error())
 		return
 	}
 
@@ -1488,17 +1616,24 @@ func (a *Api) SendStartTyping(c *gin.Context) {
 // @Param data body TypingIndicatorRequest true "Type"
 // @Router /v1/typing-indicator/{number} [delete]
 func (a *Api) SendStopTyping(c *gin.Context) {
-	var req TypingIndicatorRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
-		log.Error(err.Error())
-		return
-	}
-
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
+	var req TypingIndicatorRequest
+	err = c.BindJSON(&req)
+	if err != nil {
+		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
+		log.Error(err.Error())
 		return
 	}
 
@@ -1554,9 +1689,16 @@ func (a *Api) SearchForNumbers(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/contacts/{number} [get]
 func (a *Api) GetContact(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
 		return
 	}
 
@@ -1580,14 +1722,21 @@ func (a *Api) GetContact(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/contacts/{number} [put]
 func (a *Api) UpdateContact(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req UpdateContactRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -1617,14 +1766,21 @@ func (a *Api) UpdateContact(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/devices/{number} [post]
 func (a *Api) AddDevice(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req AddDeviceRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -1649,14 +1805,21 @@ func (a *Api) AddDevice(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/configuration/{number}/settings [post]
 func (a *Api) SetTrustMode(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	var req TrustModeRequest
-	err := c.BindJSON(&req)
+	err = c.BindJSON(&req)
 	if err != nil {
 		c.JSON(400, Error{Msg: "Couldn't process request - invalid request"})
 		return
@@ -1688,13 +1851,19 @@ func (a *Api) SetTrustMode(c *gin.Context) {
 // @Failure 400 {object} Error
 // @Router /v1/configuration/{number}/settings [get]
 func (a *Api) GetTrustMode(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
-	var err error
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
 	trustMode := TrustModeResponse{}
 	trustMode.TrustMode, err = utils.TrustModeToString(a.signalClient.GetTrustMode(number))
 	if err != nil {
@@ -1714,18 +1883,77 @@ func (a *Api) GetTrustMode(c *gin.Context) {
 // @Param number path string true "Registered Phone Number"
 // @Success 204
 // @Failure 400 {object} Error
-// @Router /v1/contacts{number}/sync [post]
+// @Router /v1/contacts/{number}/sync [post]
 func (a *Api) SendContacts(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
 	number := c.Param("number")
 	if number == "" {
 		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
 		return
 	}
 
-	err := a.signalClient.SendContacts(number)
+	err := a.signalClient.CheckAccess(sub, number)
+	if err != nil {
+		c.JSON(403, Error{Msg: err.Error()})
+		return
+	}
+
+	err = a.signalClient.SendContacts(number)
 	if err != nil {
 		c.JSON(400, Error{Msg: err.Error()})
 		return
 	}
+	c.Status(http.StatusNoContent)
+}
+
+// @Summary Start client for the specified phone number.
+// @Tags Authentication
+// @Description Start client for the specified phone number. Only numbers linked to the requester are allowed to login/logout.
+// @Accept  json
+// @Produce  json
+// @Success 200
+// @Failure 400 {object} Error
+// @Param number path string true "Registered Phone Number"
+// @Router /v1/auth/login/{number} [get]
+func (a *Api) Login(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
+	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.Login(sub, number)
+	if err != nil {
+		c.JSON(400, Error{Msg: err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// @Summary Stop client for the specified phone number.
+// @Tags Authentication
+// @Description Stop client for the specified phone number. Only numbers linked to the requester are allowed to login/logout.
+// @Accept  json
+// @Produce  json
+// @Success 200
+// @Failure 400 {object} Error
+// @Param number path string true "Registered Phone Number"
+// @Router /v1/auth/logout/{number} [get]
+func (a *Api) Logout(c *gin.Context) {
+	sub := c.Keys["sub"].(string)
+	number := c.Param("number")
+	if number == "" {
+		c.JSON(400, Error{Msg: "Couldn't process request - number missing"})
+		return
+	}
+
+	err := a.signalClient.Logout(sub, number)
+	if err != nil {
+		c.JSON(400, Error{Msg: err.Error()})
+		return
+	}
+
 	c.Status(http.StatusNoContent)
 }

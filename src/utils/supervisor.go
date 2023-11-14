@@ -107,9 +107,33 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 	return
 }
 
-func UpdateSupervisor() error {
-	if err := exec.Command("supervisorctl", "update").Run(); err != nil {
-		return fmt.Errorf("Couldn't update and restart supervisor: %s", err.Error())
+func RereadSupervisorConf() error {
+	if err := exec.Command("supervisorctl", "reread").Run(); err != nil {
+		return fmt.Errorf("couldn't update supervisor config: %s", err.Error())
+	}
+	return nil
+}
+
+func StartServiceByPort(tcpPort int64) error {
+	id := tcpPort - LinkTcpPort
+	if id < 1 {
+		return fmt.Errorf("invalid port %d for service", tcpPort)
+	}
+	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(id, 10)
+	if err := exec.Command("supervisorctl", "start", supervisorctlProgramName).Run(); err != nil {
+		return fmt.Errorf("couldn't start service: %s", err.Error())
+	}
+	return nil
+}
+
+func StopServiceByPort(tcpPort int64) error {
+	id := tcpPort - LinkTcpPort
+	if id < 1 {
+		return fmt.Errorf("invalid port %d for service", tcpPort)
+	}
+	supervisorctlProgramName := "signal-cli-json-rpc-" + strconv.FormatInt(id, 10)
+	if err := exec.Command("supervisorctl", "stop", supervisorctlProgramName).Run(); err != nil {
+		return fmt.Errorf("couldn't stop service: %s", err.Error())
 	}
 	return nil
 }

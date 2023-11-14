@@ -63,7 +63,7 @@ func main() {
 		SkipPaths: []string{"/v1/health"}, //do not log the health requests (to avoid spamming the log file)
 	}))
 
-	router.Use(gin.Recovery(), cors.Default())
+	router.Use(gin.Recovery(), cors.Default(), api.JwtAuthMiddleware())
 
 	port := utils.GetEnv("HTTP_PORT", "8080")
 	if _, err := strconv.Atoi(port); err != nil {
@@ -151,7 +151,13 @@ func main() {
 
 	jsonRpc2ClientConfigPathPath := *signalCliConfig + "/jsonrpc2.yml"
 	signalCliApiConfigPath := *signalCliConfig + "/api-config.yml"
-	signalClient := client.NewSignalClient(*signalCliConfig, *attachmentTmpDir, *avatarTmpDir, signalCliMode, jsonRpc2ClientConfigPathPath, signalCliApiConfigPath)
+	subDBPath := *signalCliConfig + "/subs.db"
+
+	subStorage, err := utils.NewSubStorage(subDBPath)
+	if err != nil {
+		log.Fatal("Couldn't init Sub Storage: ", err.Error())
+	}
+	signalClient := client.NewSignalClient(*signalCliConfig, *attachmentTmpDir, *avatarTmpDir, signalCliMode, jsonRpc2ClientConfigPathPath, signalCliApiConfigPath, subStorage)
 	err = signalClient.Init()
 	if err != nil {
 		log.Fatal("Couldn't init Signal Client: ", err.Error())
@@ -178,21 +184,16 @@ func main() {
 			health.GET("", api.Health)
 		}
 
-		register := v1.Group("/register")
-		{
-			register.POST(":number", api.RegisterNumber)
-			register.POST(":number/verify/:token", api.VerifyRegisteredNumber)
-		}
+		// register := v1.Group("/register")
+		// {
+		// 	register.POST(":number", api.RegisterNumber)
+		// 	register.POST(":number/verify/:token", api.VerifyRegisteredNumber)
+		// }
 
-		unregister := v1.Group("unregister")
-		{
-			unregister.POST(":number", api.UnregisterNumber)
-		}
-
-		sendV1 := v1.Group("/send")
-		{
-			sendV1.POST("", api.Send)
-		}
+		// unregister := v1.Group("unregister")
+		// {
+		// 	unregister.POST(":number", api.UnregisterNumber)
+		// }
 
 		receive := v1.Group("/receive")
 		{
@@ -268,6 +269,12 @@ func main() {
 			contacts.GET(":number", api.GetContact)
 			contacts.PUT(":number", api.UpdateContact)
 			contacts.POST(":number/sync", api.SendContacts)
+		}
+
+		auth := v1.Group("/auth")
+		{
+			auth.GET("login/:number", api.Login)
+			auth.GET("logout/:number", api.Logout)
 		}
 	}
 
