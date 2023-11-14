@@ -46,7 +46,7 @@ func ExtractTokenID(c *gin.Context) error {
 
 func JwtAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.RequestURI, "swagger") {
+		if strings.HasPrefix(c.Request.URL.Path, "/swagger") {
 			c.Next()
 			return
 		}
