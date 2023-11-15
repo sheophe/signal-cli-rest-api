@@ -64,6 +64,7 @@ func main() {
 	}))
 
 	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowCredentials = true
 	router.Use(gin.Recovery(), cors.New(corsConfig), api.JwtAuthMiddleware())
 
