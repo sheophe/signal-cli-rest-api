@@ -1958,7 +1958,7 @@ func (a *Api) Logout(c *gin.Context) {
 // @Tags Authentication
 // @Description Get list of phone numbers assigned to sub from JWT token.
 // @Produce  json
-// @Success 200
+// @Success 200 {object} client.AssignedNumbers
 // @Failure 404 {object} Error
 // @Router /v1/auth/numbers [get]
 func (a *Api) GetNumbers(c *gin.Context) {
