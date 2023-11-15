@@ -109,6 +109,9 @@ func SaveSupervisorConf(ctr *int64, number, signalCliConfigDir string) (tcpPort 
 
 func RereadSupervisorConf() error {
 	if err := exec.Command("supervisorctl", "reread").Run(); err != nil {
+		return fmt.Errorf("couldn't reread supervisor config: %s", err.Error())
+	}
+	if err := exec.Command("supervisorctl", "update").Run(); err != nil {
 		return fmt.Errorf("couldn't update supervisor config: %s", err.Error())
 	}
 	return nil
