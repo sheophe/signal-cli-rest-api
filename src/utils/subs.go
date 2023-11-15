@@ -47,11 +47,24 @@ func NewSubStorage(dbFile string) (*SubStorage, error) {
 
 func (s *SubStorage) GetSubByNumber(number string) (string, bool) {
 	row := LinkedNumber{}
-	err := s.DB.Model(&row).Where("number = ?", number).First(&row).Error
+	err := s.DB.Model(&LinkedNumber{}).Where("number = ?", number).First(&row).Error
 	if err != nil {
 		return "", false
 	}
 	return row.Sub, true
+}
+
+func (s *SubStorage) GetNumbersBySub(sub string) ([]string, bool) {
+	rows := []LinkedNumber{}
+	err := s.DB.Model(&LinkedNumber{}).Where("sub = ?", sub).Find(&rows).Error
+	if err != nil {
+		return nil, false
+	}
+	numbers := []string{}
+	for _, row := range rows {
+		numbers = append(numbers, row.Number)
+	}
+	return numbers, true
 }
 
 func (s *SubStorage) CheckIfSubIsValid(sub, number string) error {

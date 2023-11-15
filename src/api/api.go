@@ -349,7 +349,7 @@ func (a *Api) SendV2(c *gin.Context) {
 		return
 	}
 
-	timestamps, err := a.signalClient.SendV2(
+	response, err := a.signalClient.SendV2(
 		req.Number, req.Message, req.Recipients, req.Base64Attachments, req.Sticker,
 		req.Mentions, req.QuoteTimestamp, req.QuoteAuthor, req.QuoteMessage, req.QuoteMentions, req.TextMode)
 	if err != nil {
@@ -357,7 +357,7 @@ func (a *Api) SendV2(c *gin.Context) {
 		return
 	}
 
-	c.JSON(201, SendMessageResponse{Timestamp: strconv.FormatInt((*timestamps)[0].Timestamp, 10)})
+	c.JSON(201, response)
 }
 
 func (a *Api) handleSignalReceive(ws *websocket.Conn, number string, stop chan struct{}) {
@@ -1909,8 +1909,6 @@ func (a *Api) SendContacts(c *gin.Context) {
 // @Summary Start client for the specified phone number.
 // @Tags Authentication
 // @Description Start client for the specified phone number. Only numbers linked to the requester are allowed to login/logout.
-// @Accept  json
-// @Produce  json
 // @Success 200
 // @Failure 400 {object} Error
 // @Param number path string true "Registered Phone Number"
@@ -1935,8 +1933,6 @@ func (a *Api) Login(c *gin.Context) {
 // @Summary Stop client for the specified phone number.
 // @Tags Authentication
 // @Description Stop client for the specified phone number. Only numbers linked to the requester are allowed to login/logout.
-// @Accept  json
-// @Produce  json
 // @Success 200
 // @Failure 400 {object} Error
 // @Param number path string true "Registered Phone Number"
@@ -1956,4 +1952,23 @@ func (a *Api) Logout(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// @Summary Get list of numbers assigned to sub from JWT token.
+// @Tags Authentication
+// @Description Get list of phone numbers assigned to sub from JWT token.
+// @Produce  json
+// @Success 200
+// @Failure 404 {object} Error
+// @Router /v1/auth/numbers [get]
+func (a *Api) GetNumbers(c *gin.Context) {
+	sub := c.MustGet("sub").(string)
+
+	numbers, err := a.signalClient.GetNumbers(sub)
+	if err != nil {
+		c.JSON(404, Error{Msg: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, numbers)
 }

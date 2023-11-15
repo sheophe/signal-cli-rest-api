@@ -200,8 +200,20 @@ type SignalLinkNumber struct {
 	Number string `json:"number"`
 }
 
+type SendAddress struct {
+	UUID     string `json:"uuid,omitempty"`
+	Number   string `json:"number,omitempty"`
+	Username string `json:"username,omitempty"`
+}
+
+type SendResults struct {
+	RecepientAddress SendAddress `json:"recipientAddress"`
+	Type             string      `json:"type"`
+}
+
 type SendResponse struct {
-	Timestamp int64 `json:"timestamp"`
+	Timestamp int64         `json:"timestamp"`
+	Results   []SendResults `json:"results"`
 }
 
 type About struct {
@@ -215,6 +227,10 @@ type About struct {
 type SearchResultEntry struct {
 	Number     string `json:"number"`
 	Registered bool   `json:"registered"`
+}
+
+type AssignedNumbers struct {
+	Numbers []string `json:"numbers"`
 }
 
 func cleanupTmpFiles(paths []string) {
@@ -482,6 +498,8 @@ func (s *SignalClient) send(number string, message string,
 			cleanupAttachmentEntries(attachmentEntries)
 			return nil, err
 		}
+
+		log.Info(rawData)
 
 		err = json.Unmarshal([]byte(rawData), &resp)
 		if err != nil {
@@ -1901,4 +1919,12 @@ func (s *SignalClient) Logout(sub, number string) error {
 	}
 
 	return nil
+}
+
+func (s *SignalClient) GetNumbers(sub string) (*AssignedNumbers, error) {
+	numbers, ok := s.subStorage.GetNumbersBySub(sub)
+	if !ok {
+		return nil, fmt.Errorf("'%s' does not have any numbers linked to them", sub)
+	}
+	return &AssignedNumbers{Numbers: numbers}, nil
 }

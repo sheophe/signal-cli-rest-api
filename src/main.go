@@ -275,6 +275,7 @@ func main() {
 		{
 			auth.GET("login/:number", api.Login)
 			auth.GET("logout/:number", api.Logout)
+			auth.GET("numbers", api.GetNumbers)
 		}
 	}
 
