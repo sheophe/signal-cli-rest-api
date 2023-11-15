@@ -66,6 +66,8 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowCredentials = true
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Authorization")
+
 	router.Use(gin.Recovery(), cors.New(corsConfig), api.JwtAuthMiddleware())
 
 	port := utils.GetEnv("HTTP_PORT", "8080")
