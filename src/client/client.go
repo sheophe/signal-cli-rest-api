@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -493,7 +494,7 @@ func (s *SignalClient) send(number string, message string,
 			request.TextStyles = signalCliTextFormatStrings
 		}
 
-		rawData, err := jsonRpc2Client.getRaw("send", request)
+		rawData, err := jsonRpc2Client.getRaw("send", request, nil)
 		if err != nil {
 			cleanupAttachmentEntries(attachmentEntries)
 			return nil, err
@@ -800,7 +801,7 @@ func (s *SignalClient) CreateGroup(number string, name string, members []string,
 		if err != nil {
 			return "", err
 		}
-		rawData, err := jsonRpc2Client.getRaw("updateGroup", request)
+		rawData, err := jsonRpc2Client.getRaw("updateGroup", request, nil)
 		if err != nil {
 			return "", err
 		}
@@ -888,7 +889,7 @@ func (s *SignalClient) updateGroupMembers(number string, groupId string, members
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateGroup", request)
+		_, err = jsonRpc2Client.getRaw("updateGroup", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateGroup", "-g", internalGroupId}
 
@@ -951,7 +952,7 @@ func (s *SignalClient) updateGroupAdmins(number string, groupId string, admins [
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateGroup", request)
+		_, err = jsonRpc2Client.getRaw("updateGroup", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateGroup", "-g", internalGroupId}
 
@@ -987,7 +988,7 @@ func (s *SignalClient) GetGroups(number string) ([]GroupEntry, error) {
 		if err != nil {
 			return groupEntries, err
 		}
-		rawData, err = jsonRpc2Client.getRaw("listGroups", nil)
+		rawData, err = jsonRpc2Client.getRaw("listGroups", nil, nil)
 		if err != nil {
 			return groupEntries, err
 		}
@@ -1070,7 +1071,7 @@ func (s *SignalClient) DeleteGroup(number string, groupId string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("quitGroup", request)
+		_, err = jsonRpc2Client.getRaw("quitGroup", request, nil)
 		return err
 	} else {
 		ret, err := s.cliClient.Execute(true, []string{"--config", s.signalCliConfig, "-a", number, "quitGroup", "-g", string(groupId)}, "")
@@ -1088,7 +1089,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 			return SignalLinkUrl{}, errors.New("No system number registered")
 		}
 
-		deviceLinkUri, err := jsonRpc2Client.getRaw("startLink", nil)
+		deviceLinkUri, err := jsonRpc2Client.getRaw("startLink", nil, nil)
 		if err != nil {
 			return SignalLinkUrl{}, err
 		}
@@ -1119,7 +1120,7 @@ func (s *SignalClient) GetDeviceLink(deviceName string) (SignalLinkUrl, error) {
 	return signalLinkUri, nil
 }
 
-func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, sub string) (SignalLinkNumber, error) {
+func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, sub string, ctx context.Context) (SignalLinkNumber, error) {
 	if s.signalCliMode != JsonRpc {
 		return SignalLinkNumber{}, errors.New(endpointOnlySupportedInJsonRpcMode)
 	}
@@ -1151,7 +1152,7 @@ func (s *SignalClient) GetDeviceLinkAwait(deviceLinkUri, sub string) (SignalLink
 
 	log.Info("Finish link request: ", request)
 
-	rawData, err := jsonRpc2Client.getRaw("finishLink", request)
+	rawData, err := jsonRpc2Client.getRaw("finishLink", request, ctx)
 	if err != nil {
 		return SignalLinkNumber{}, err
 	}
@@ -1304,7 +1305,7 @@ func (s *SignalClient) UpdateProfile(number string, profileName string, base64Av
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateProfile", request)
+		_, err = jsonRpc2Client.getRaw("updateProfile", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateProfile", "--given-name", profileName}
 		if base64Avatar == "" {
@@ -1327,7 +1328,7 @@ func (s *SignalClient) ListIdentities(number string) (*[]IdentityEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		rawData, err := jsonRpc2Client.getRaw("listIdentities", nil)
+		rawData, err := jsonRpc2Client.getRaw("listIdentities", nil, nil)
 		signalCliIdentityEntries := []SignalCliIdentityEntry{}
 		err = json.Unmarshal([]byte(rawData), &signalCliIdentityEntries)
 		if err != nil {
@@ -1389,7 +1390,7 @@ func (s *SignalClient) TrustIdentity(number string, numberToTrust string, verifi
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("trust", request)
+		_, err = jsonRpc2Client.getRaw("trust", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "trust", numberToTrust}
 
@@ -1417,7 +1418,7 @@ func (s *SignalClient) BlockGroup(number string, groupId string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("block", request)
+		_, err = jsonRpc2Client.getRaw("block", request, nil)
 	} else {
 		_, err = s.cliClient.Execute(true, []string{"--config", s.signalCliConfig, "-a", number, "block", "-g", groupId}, "")
 	}
@@ -1435,7 +1436,7 @@ func (s *SignalClient) JoinGroup(number string, groupId string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateGroup", request)
+		_, err = jsonRpc2Client.getRaw("updateGroup", request, nil)
 	} else {
 		_, err = s.cliClient.Execute(true, []string{"--config", s.signalCliConfig, "-a", number, "updateGroup", "-g", groupId}, "")
 	}
@@ -1453,7 +1454,7 @@ func (s *SignalClient) QuitGroup(number string, groupId string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("quitGroup", request)
+		_, err = jsonRpc2Client.getRaw("quitGroup", request, nil)
 	} else {
 		_, err = s.cliClient.Execute(true, []string{"--config", s.signalCliConfig, "-a", number, "quitGroup", "-g", groupId}, "")
 	}
@@ -1516,7 +1517,7 @@ func (s *SignalClient) UpdateGroup(number string, groupId string, base64Avatar *
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateGroup", request)
+		_, err = jsonRpc2Client.getRaw("updateGroup", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "updateGroup", "-g", groupId}
 		if base64Avatar != nil {
@@ -1577,7 +1578,7 @@ func (s *SignalClient) SendReaction(number string, recipient string, emoji strin
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("sendReaction", request)
+		_, err = jsonRpc2Client.getRaw("sendReaction", request, nil)
 		return err
 	}
 
@@ -1627,7 +1628,7 @@ func (s *SignalClient) SendStartTyping(number string, recipient string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("sendTyping", request)
+		_, err = jsonRpc2Client.getRaw("sendTyping", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "sendTyping"}
 		if !isGroup {
@@ -1670,7 +1671,7 @@ func (s *SignalClient) SendStopTyping(number string, recipient string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("sendTyping", request)
+		_, err = jsonRpc2Client.getRaw("sendTyping", request, nil)
 	} else {
 		cmd := []string{"--config", s.signalCliConfig, "-a", number, "sendTyping", "--stop"}
 		if !isGroup {
@@ -1700,7 +1701,7 @@ func (s *SignalClient) SearchForNumbers(number string, numbers []string) ([]Sear
 			return searchResultEntries, errors.New("No JsonRpc2Client registered!")
 		}
 		for _, jsonRpc2Client := range jsonRpc2Clients {
-			rawData, err = jsonRpc2Client.getRaw("getUserStatus", request)
+			rawData, err = jsonRpc2Client.getRaw("getUserStatus", request, nil)
 			if err == nil { //getUserStatus doesn't need an account to work, so try all the registered acounts and stop until we succeed
 				break
 			}
@@ -1749,7 +1750,7 @@ func (s *SignalClient) SendContacts(number string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("sendContacts", nil)
+		_, err = jsonRpc2Client.getRaw("sendContacts", nil, nil)
 		return err
 	}
 
@@ -1772,7 +1773,7 @@ func (s *SignalClient) GetContacts(number string) ([]ContactEntry, error) {
 	if err != nil {
 		return []ContactEntry{}, err
 	}
-	rawData, err := jsonRpc2Client.getRaw("listContacts", request)
+	rawData, err := jsonRpc2Client.getRaw("listContacts", request, nil)
 	if err != nil {
 		return []ContactEntry{}, err
 	}
@@ -1805,7 +1806,7 @@ func (s *SignalClient) UpdateContact(number string, recipient string, name *stri
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("updateContact", request)
+		_, err = jsonRpc2Client.getRaw("updateContact", request, nil)
 		return err
 	}
 
@@ -1831,7 +1832,7 @@ func (s *SignalClient) AddDevice(number string, uri string) error {
 		if err != nil {
 			return err
 		}
-		_, err = jsonRpc2Client.getRaw("addDevice", request)
+		_, err = jsonRpc2Client.getRaw("addDevice", request, nil)
 		return err
 	}
 

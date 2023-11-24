@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
@@ -66,7 +67,7 @@ func (r *JsonRpc2Client) Dial() error {
 	return nil
 }
 
-func (r *JsonRpc2Client) getRaw(command string, args interface{}) (string, error) {
+func (r *JsonRpc2Client) getRaw(command string, args interface{}, ctx context.Context) (string, error) {
 	type Request struct {
 		JsonRpc string      `json:"jsonrpc"`
 		Method  string      `json:"method"`
@@ -114,10 +115,24 @@ func (r *JsonRpc2Client) getRaw(command string, args interface{}) (string, error
 	}
 
 	var resp JsonRpc2MessageResponse
-	for {
-		resp = <-r.receivedMessageResponses
-		if resp.Id == u.String() {
-			break
+	if ctx == nil {
+		for {
+			resp = <-r.receivedMessageResponses
+			if resp.Id == u.String() {
+				break
+			}
+		}
+	} else {
+	receiveLoop:
+		for {
+			select {
+			case resp = <-r.receivedMessageResponses:
+				if resp.Id == u.String() {
+					break receiveLoop
+				}
+			case <-ctx.Done():
+				return "", errors.New("request cancelled")
+			}
 		}
 	}
 
